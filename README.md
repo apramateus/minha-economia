@@ -5,7 +5,8 @@ em destaque. Os dados ficam só no seu Mac, em `data/` (fora do git, com backup 
 
 ## Instalar
 
-Peça ao seu Claude: "Instale o Minha Economia seguindo [INSTALAR.md](INSTALAR.md), um passo de cada vez".
+No app **Claude** → aba **Code** → **Project folder**: Documentos → cole: "Instale o Minha Economia seguindo
+https://github.com/apramateus/minha-economia/blob/main/INSTALAR.md". O Claude faz o resto ([INSTALAR.md](INSTALAR.md)).
 Já tem o app baixado? `bash scripts/instalar-mac.sh` instala o Node (se faltar, sem senha), as dependências e o atalho na Mesa.
 O app começa com números de exemplo, que somem quando o banco é conectado (ou com `npm run limpar-exemplo`).
 

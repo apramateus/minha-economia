@@ -1,18 +1,21 @@
 # Instalar o Minha Economia (guia para o Claude)
 
-Quem vai instalar cola para o Claude: "Instale o Minha Economia seguindo INSTALAR.md, um passo de cada vez".
-Endereço deste guia: https://github.com/apramateus/minha-economia/blob/main/INSTALAR.md
+Quem vai instalar só faz isto: abre o app **Claude** → aba **Code** → em **Project folder** escolhe **Documentos** → cola
+"Instale o Minha Economia seguindo https://github.com/apramateus/minha-economia/blob/main/INSTALAR.md".
+**Daqui em diante é com você, Claude.** Ela só faz o que ninguém pode fazer por ela: clicar em **Instalar** se o macOS oferecer,
+entrar nas contas (Claude, Meu Pluggy, Pluggy), autorizar no app do banco e responder umas perguntas sobre dinheiro e metas.
 
 ## Para o Claude que está ajudando
 
-- A pessoa não é da área técnica. Fale simples, **um passo por vez**: o que fazer, o que vai aparecer na tela, e espere ela contar
-  o que viu (ou mandar um print) antes de seguir.
-- Se você roda comandos neste Mac (Claude Code), rode você. Se não, mande um comando por vez para ela colar no **Terminal**
-  (⌘ + Espaço → "Terminal" → Enter) e peça o que apareceu. Depois do passo 2, o mais fácil é continuar dentro do Claude Code:
-  ela abre o Terminal, cola `cd "$HOME/Documents/Minha Economia" && claude` e escreve "Continue a instalação pelo INSTALAR.md, passo 3".
-- **Nunca digite senha, CPF ou código do banco.** Ela digita. Nas telas de login e de autorização, pare e espere ela dizer que terminou.
-- **Segredo nunca aparece no chat.** Client ID, Client Secret e Item ID: ela clica em "Copiar" na Pluggy e você grava direto da área
-  de transferência com o bloco abaixo. Nada de `echo`, `cat` ou `grep` que mostre o valor, e não peça para ela colar no chat.
+- **Você faz tudo o que dá:** comandos, abrir o app, abrir páginas no Chrome e clicar nelas, gravar arquivos, conferir. Não peça
+  para ela colar comando, abrir Terminal ou achar arquivo. Antes de algo demorado ou de uma ação dela, avise numa frase simples
+  o que vai aparecer na tela e o que ela deve clicar.
+- **Está no chat comum e não consegue rodar comandos?** Peça para ela abrir a aba **Code** do app Claude, escolher a pasta
+  **Documentos** em **Project folder** e colar a mesma mensagem lá. (Só se não existir a aba Code: comandos um por vez no Terminal.)
+- **Nunca digite senha, CPF ou código do banco.** Nas telas de login e de autorização, pare e espere ela dizer que terminou.
+- **Segredo nunca aparece no chat.** Client ID, Client Secret e Item ID: você mesmo clica em **Copiar** na Pluggy pelo Chrome
+  (sem ler o valor na tela) e grava direto da área de transferência com o bloco abaixo. Nada de `echo`, `cat` ou `grep` que
+  mostre o valor, e não peça para ela colar no chat.
 - **Dados dela** (renda, gastos, metas): mostre o que vai gravar e espere o OK.
 - **Não mexa no código do app.** Você só grava em `data/`, `.env.local` e `CLAUDE.local.md`, que ficam fora do git.
 - Pasta do app: `~/Documents/Minha Economia`.
@@ -20,7 +23,7 @@ Endereço deste guia: https://github.com/apramateus/minha-economia/blob/main/INS
 ### Gravar um segredo (sem mostrar)
 
 Troque `PLUGGY_CLIENT_ID` pela chave da vez (`PLUGGY_CLIENT_SECRET`, `PLUGGY_ITEM_IDS`, `PLUGGY_ITEM_ID_NOVO`) e rode logo depois
-que ela clicar em "Copiar":
+de clicar em "Copiar":
 
 ```bash
 cd "$HOME/Documents/Minha Economia" && umask 077 && k=PLUGGY_CLIENT_ID && v="$(pbpaste | tr -d '[:space:]')" && [ -n "$v" ] \
@@ -29,44 +32,46 @@ cd "$HOME/Documents/Minha Economia" && umask 077 && k=PLUGGY_CLIENT_ID && v="$(p
   && pbcopy < /dev/null && echo "$k gravado: ${#v} caracteres$([[ $v =~ ^[0-9a-f-]{36}$ ]] && echo ', formato ok')"
 ```
 
-Sem "formato ok" (os três costumam ter 36 caracteres), peça para ela copiar de novo e repita.
+Sem "formato ok" (os três costumam ter 36 caracteres), copie de novo e repita.
 
-## 1. Claude Code no Terminal
-
-O Copiloto do app usa o Claude Code da pessoa (a assinatura dela, sem custo extra).
+## 1. Instalar (você roda tudo)
 
 ```bash
-curl -fsSL https://claude.ai/install.sh | bash
+xcode-select -p >/dev/null 2>&1 || xcode-select --install
 ```
 
-Não pede senha de administrador; instala em `~/.local/bin/claude`. Depois ela fecha o Terminal, abre de novo, digita `claude`
-e entra no navegador com a conta dela. Confira com `claude --version`. Se aparecer "command not found":
+Se abrir uma janela do macOS pedindo as "ferramentas de linha de comando", ela clica em **Instalar** (alguns minutos). Espere
+terminar (`until xcode-select -p >/dev/null 2>&1; do sleep 10; done`) e siga:
 
 ```bash
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
-```
-
-e abrir o Terminal de novo.
-
-## 2. Baixar o app
-
-```bash
-git clone https://github.com/apramateus/minha-economia "$HOME/Documents/Minha Economia"
-```
-
-Se o Mac pedir para instalar as "ferramentas de linha de comando", ela clica em **Instalar**, espera terminar (alguns minutos)
-e roda o comando de novo.
-
-## 3. Instalar
-
-```bash
+[ -x "$HOME/.local/bin/claude" ] || command -v claude >/dev/null || curl -fsSL https://claude.ai/install.sh | bash
+[ -d "$HOME/Documents/Minha Economia/.git" ] || git clone https://github.com/apramateus/minha-economia "$HOME/Documents/Minha Economia"
 cd "$HOME/Documents/Minha Economia" && bash scripts/instalar-mac.sh
 ```
 
-O script instala o Node (se faltar, sem senha), as dependências e cria o atalho **Minha Economia** na Mesa. Pode rodar de novo
-sem problema. Ela dá dois cliques no atalho: abre uma janela do Terminal com um QR code (deixar aberta enquanto usa) e o app
-no navegador, com **números de exemplo** (etiqueta "Exemplo" no Início). Se o Mac perguntar se o Terminal pode acessar
-Documentos: **Permitir**.
+O primeiro instala o Claude Code de terminal, que o Copiloto do app usa (a assinatura dela, sem custo extra). O último instala o
+Node (se faltar, sem senha), as dependências e o atalho **Minha Economia** na Mesa. Tudo pode rodar de novo sem problema.
+
+## 2. Login do Copiloto
+
+```bash
+"$HOME/.local/bin/claude" -p "responda só: ok"
+```
+
+Respondeu "ok": pronto, pule para o 3. Pediu login: abra uma janela de login para ela com
+`open -a Terminal "$HOME/.local/bin/claude"`. Abre o Terminal e o navegador: ela entra com a **mesma conta do Claude** (se o
+Terminal fizer alguma pergunta antes, como tema ou confiar na pasta, é só apertar Enter). Quando aparecer "Login successful",
+ela fecha aquela janela. Rode o teste de novo.
+
+## 3. Abrir o app
+
+```bash
+open "$HOME/Desktop/Minha Economia.command"
+```
+
+Abre uma janela do Terminal com um QR code (é o app rodando: fica aberta enquanto usa) e o app no navegador, com **números de
+exemplo** (etiqueta "Exemplo" no Início). Se o Mac perguntar se o Terminal pode acessar Documentos: ela clica em **Permitir**.
+Mostre a ela: dali em diante, para abrir o app é dar dois cliques em **Minha Economia** na Mesa.
 
 ## 4. Conhecer ela
 
@@ -96,14 +101,18 @@ O app relê os arquivos quando a janela dele volta ao foco.
 
 ## 5. Conectar o banco (Meu Pluggy, só leitura), com o Claude no Chrome
 
-Ela instala a extensão **Claude** no Chrome
-(https://chromewebstore.google.com/detail/claude/fcoeoabgfenejglbffodgkkbkcdhcgfn), entra com a mesma conta, e digita `/chrome`
-no Claude Code para ligar. Você clica; nos logins, no CPF e na autorização no app do banco, você para e ela faz.
+Você navega e clica; ela só entra nas contas e autoriza no app do banco.
 
-a. **meu.pluggy.ai** → entrar (com Google é o mais fácil) → **Conectar Minha Conta** → o banco dela → ela autoriza no app do banco
-   (marcar conta e cartão).
-b. **dashboard.pluggy.ai** → criar conta (começa um teste de 15 dias: faça b, c e d no mesmo dia) → **Aplicações** → nova aplicação
-   "Minha Economia" (de desenvolvimento) → **Client ID** e **Client Secret**: ela clica "Copiar", você grava (um de cada vez).
+- **Chrome:** se não houver `/Applications/Google Chrome.app`, abra `https://www.google.com/chrome/` e guie ela a instalar.
+- **Extensão:** `open -a "Google Chrome" "https://chromewebstore.google.com/detail/claude/fcoeoabgfenejglbffodgkkbkcdhcgfn"`
+  → ela clica em **Usar no Chrome** e entra com a mesma conta do Claude. Na aba Code a extensão é detectada sozinha
+  (`/chrome` mostra o estado).
+
+a. **meu.pluggy.ai** → ela entra (com Google é o mais fácil) → você: **Conectar Minha Conta** → o banco dela → ela autoriza no
+   app do banco (marcar conta e cartão).
+b. **dashboard.pluggy.ai** → ela cria a conta (começa um teste de 15 dias: faça b, c e d no mesmo dia) → você: **Aplicações** →
+   nova aplicação "Minha Economia" (de desenvolvimento) → **Client ID** e **Client Secret**: você clica em "Copiar" e grava
+   (um de cada vez).
 c. **Customização → Conectores → Conectores Diretos**: conferir que "(200) MeuPluggy Direto" está ligado (costuma já estar).
 d. Na linha da aplicação **dela** → **Iniciar Demo** → Conectar Conta → Continuar → buscar **MeuPluggy** → Continuar → Conectar →
    login do Meu Pluggy (ela) → autorizar e escolher o banco → quando aparecer "Atualizado", abrir o item → **Copiar Item ID** →
@@ -117,12 +126,12 @@ Armadilhas:
 - Outro banco depois = repetir o d: o Item ID novo vai em `PLUGGY_ITEM_ID_NOVO`, conferir com `npm run sincronizar -- --novo`
   (contas e finais, sem repetir as que já vêm) e só então juntar em `PLUGGY_ITEM_IDS` (separados por vírgula).
 
-Sem o Chrome: os mesmos passos em texto, ela manda print de cada tela. O `.env.local` segue o formato do `.env.exemplo`.
+Sem a extensão: os mesmos passos em texto, um por vez, e ela manda print de cada tela. O `.env.local` segue o formato do `.env.exemplo`.
 
 ## 6. Primeira sincronização
 
 ```bash
-npm run sincronizar -- --simular
+cd "$HOME/Documents/Minha Economia" && npm run sincronizar -- --simular
 ```
 
 Confira com ela as contas (nomes e finais) e o valor do cartão contra a fatura atual no app do banco. Se o cartão mostrar
@@ -143,27 +152,28 @@ Se ela não quiser conectar banco: `npm run limpar-exemplo` e importar o extrato
 
 ## 7. iPhone (opcional)
 
-Com o app aberto pelo atalho, o Terminal mostra um QR. iPhone na mesma Wi-Fi → câmera no QR → abre no Safari → **Compartilhar →
-Adicionar à Tela de Início**. Funciona enquanto o Mac está ligado com a janela do app aberta. No app, Início → **Celular** mostra
-o QR de novo.
+Com o app aberto, o Terminal do app mostra um QR. iPhone na mesma Wi-Fi → câmera no QR → abre no Safari → **Compartilhar →
+Adicionar à Tela de Início**. Funciona enquanto o Mac está ligado com o app aberto. No app, Início → **Celular** mostra o QR de novo.
 
 ## 8. Atualizar (quando ela disser "atualize o app")
 
-Ela fecha a janela do Terminal do app. Então:
+Você mesmo fecha o app, atualiza e abre de novo:
 
 ```bash
-cd "$HOME/Documents/Minha Economia" && antes="$(git rev-parse HEAD)" && git pull --ff-only \
-  && { git diff --quiet "$antes" HEAD -- package-lock.json || npm ci; }
+cd "$HOME/Documents/Minha Economia" && { lsof -tiTCP:5180 -sTCP:LISTEN | xargs kill 2>/dev/null; true; } \
+  && antes="$(git rev-parse HEAD)" && git pull --ff-only \
+  && { git diff --quiet "$antes" HEAD -- package-lock.json || npm ci; } \
+  && open "$HOME/Desktop/Minha Economia.command"
 ```
 
-e dois cliques no atalho. Nunca mexa em `data/`, `.env.local` nem `CLAUDE.local.md` (o `git pull` não toca neles). Se o `git pull`
-recusar, não force: mostre o `git status` e avise quem mantém o app. Algo quebrou depois de atualizar? `bash scripts/instalar-mac.sh`.
+Nunca mexa em `data/`, `.env.local` nem `CLAUDE.local.md` (o `git pull` não toca neles). Se o `git pull` recusar, não force:
+mostre o `git status` e avise quem mantém o app. Algo quebrou depois de atualizar? `bash scripts/instalar-mac.sh`.
 
 ## 9. Problemas comuns
 
-- **Porta 5180 ocupada**: já tem uma janela do app aberta. Feche as janelas do Terminal e abra o atalho de novo.
-- **"O Claude Code precisa de login"** (no Copiloto): no Terminal, `claude` e entrar. "Não encontrei o Claude Code": passo 1.
+- **Porta 5180 ocupada**: o app já está aberto. `lsof -tiTCP:5180 -sTCP:LISTEN | xargs kill` e abra o atalho de novo.
+- **"O Claude Code precisa de login"** (no Copiloto): repita o passo 2. "Não encontrei o Claude Code": repita o passo 1.
 - **"node não encontrado"** ou **"npm: command not found"**: `bash scripts/instalar-mac.sh` de novo.
-- **O Mac pede permissão para o Terminal acessar Documentos**: Permitir.
+- **O Mac pede permissão para o Terminal acessar Documentos**: ela clica em Permitir.
 - **Sincronizar**: "Falta preencher no .env.local" = gravar de novo a chave que falta; 401/403 = Client ID ou Secret errado
   (copiar de novo); 404 = Item ID de outra aplicação (refazer o 5d na aplicação dela).
