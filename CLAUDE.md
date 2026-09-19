@@ -70,6 +70,9 @@ no `seed/`, nos testes ou neste arquivo. Numa instalação que só usa o app, n�
   0 → 10 mil → 25 mil → meta, "Próximo marco: … · faltam …"); 2) meses de liberdade; 3) metas (3 primeiras; "Ver mais" → `#/metas`); 4) mês até agora; 5) a categorizar.
   **Início e Orçamento cabem na tela sem rolar** (pedido do usuário): no computador, duas colunas (página `lg:max-w-5xl`).
   Seções (menu lateral no computador, barra embaixo no celular): Início, Gastos, Extrato, Orçamento, Metas, Dívidas (o celular mostra as 5 primeiras + Copiloto).
+- **Patrimônio** (`#/patrimonio`, `src/pages/Patrimonio.tsx`; pedido do usuário): **contas e investimentos só aparecem** (vêm do banco;
+  sem editar nem adicionar). Os **bens** (o que não dá para registrar sozinho, em geral coisa física) são a lista editável:
+  clicar edita, botão direito ou "⋯" → Editar/Excluir (excluir com Desfazer), "+ Adicionar".
 - **Dívidas** (`#/dividas`, `src/pages/Dividas.tsx`): a fatura do cartão (tipo `fatura`) vem da sincronização e só aparece (sem editar/excluir);
   as outras (empréstimo, outra) o usuário registra: clicar edita, botão direito → Editar/Excluir, excluir com Desfazer. Empréstimo entra
   nas Metas como a etapa "Quitar empréstimo".
