@@ -1,0 +1,22 @@
+{
+  "contas": [
+    { "id": "conta", "nome": "Conta corrente", "saldo": 400, "reserva": false },
+    { "id": "investimentos-conta", "nome": "Investimentos", "saldo": 1500, "reserva": false },
+    { "id": "caixinha", "nome": "Reserva (liquidez diária)", "saldo": 600, "reserva": true, "nota": "resgate no mesmo dia" }
+  ],
+  "aReceber": [
+    { "id": "reembolso", "nome": "Reembolso de despesas", "valor": 400 }
+  ],
+  "bens": [
+    { "id": "bicicleta", "nome": "Bicicleta", "valor": 2000 },
+    { "id": "notebook", "nome": "Notebook", "valor": 3000 },
+    { "id": "celular", "nome": "Celular (usado)", "valor": 1500, "nota": "estimado" },
+    { "id": "geladeira", "nome": "Geladeira", "valor": 2500 },
+    { "id": "sofa", "nome": "Sofá", "valor": 1000 }
+  ],
+  "dividas": [
+    { "id": "emprestimo", "nome": "Empréstimo", "valor": 1500, "tipo": "emprestimo" },
+    { "id": "fatura-cartao", "nome": "Fatura do cartão", "valor": 1800, "tipo": "fatura" }
+  ],
+  "snapshots": []
+}

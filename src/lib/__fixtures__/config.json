@@ -1,0 +1,214 @@
+{
+  "orcamento": [
+    {
+      "id": "casa",
+      "nome": "Casa",
+      "valor": 0,
+      "natureza": "fixo",
+      "pai": null
+    },
+    {
+      "id": "contas-da-casa",
+      "nome": "Contas da casa",
+      "valor": 0,
+      "natureza": "fixo",
+      "pai": "casa"
+    },
+    {
+      "id": "comida",
+      "nome": "Comida",
+      "valor": 0,
+      "natureza": "flexivel",
+      "pai": null
+    },
+    {
+      "id": "saude",
+      "nome": "Saúde",
+      "valor": 0,
+      "natureza": "flexivel",
+      "pai": null
+    },
+    {
+      "id": "educacao",
+      "nome": "Educação",
+      "valor": 0,
+      "natureza": "flexivel",
+      "pai": null
+    },
+    {
+      "id": "transporte",
+      "nome": "Transporte",
+      "valor": 0,
+      "natureza": "flexivel",
+      "pai": null
+    },
+    {
+      "id": "pessoal",
+      "nome": "Pessoal",
+      "valor": 0,
+      "natureza": "flexivel",
+      "pai": null
+    },
+    {
+      "id": "aluguel",
+      "nome": "Aluguel",
+      "valor": 1500,
+      "natureza": "fixo",
+      "pai": "casa"
+    },
+    {
+      "id": "luz",
+      "nome": "Luz",
+      "valor": 100,
+      "natureza": "fixo",
+      "pai": "contas-da-casa"
+    },
+    {
+      "id": "agua",
+      "nome": "Água",
+      "valor": 60,
+      "nota": "R$ 180 a cada 3 meses",
+      "natureza": "fixo",
+      "pai": "contas-da-casa"
+    },
+    {
+      "id": "internet",
+      "nome": "Internet",
+      "valor": 100,
+      "natureza": "fixo",
+      "pai": "contas-da-casa"
+    },
+    {
+      "id": "plano-saude",
+      "nome": "Plano de saúde",
+      "valor": 300,
+      "natureza": "fixo",
+      "pai": "saude"
+    },
+    {
+      "id": "academia",
+      "nome": "Academia",
+      "valor": 100,
+      "natureza": "fixo",
+      "pai": "saude"
+    },
+    {
+      "id": "cursos",
+      "nome": "Cursos online",
+      "valor": 100,
+      "natureza": "fixo",
+      "pai": "educacao"
+    },
+    {
+      "id": "combustivel",
+      "nome": "Combustível",
+      "valor": 150,
+      "natureza": "fixo",
+      "pai": "transporte"
+    },
+    {
+      "id": "mercado",
+      "nome": "Mercado",
+      "valor": 700,
+      "natureza": "fixo",
+      "pai": "casa"
+    },
+    {
+      "id": "restaurante",
+      "nome": "Restaurante",
+      "valor": 400,
+      "natureza": "flexivel",
+      "pai": "comida"
+    },
+    {
+      "id": "almoco-fora",
+      "nome": "Almoço fora",
+      "valor": 300,
+      "nota": "2x por semana",
+      "natureza": "flexivel",
+      "pai": "comida"
+    },
+    {
+      "id": "ifood",
+      "nome": "iFood / delivery",
+      "valor": 200,
+      "natureza": "flexivel",
+      "pai": "comida"
+    },
+    {
+      "id": "livros",
+      "nome": "Livros",
+      "valor": 50,
+      "natureza": "flexivel",
+      "pai": "educacao"
+    },
+    {
+      "id": "celular",
+      "nome": "Plano de celular",
+      "valor": 50,
+      "nota": "estimado",
+      "natureza": "flexivel",
+      "pai": "pessoal"
+    },
+    {
+      "id": "assinaturas",
+      "nome": "Assinaturas (streaming, nuvem)",
+      "valor": 60,
+      "natureza": "flexivel",
+      "pai": "pessoal"
+    },
+    {
+      "id": "ipva",
+      "nome": "IPVA e revisão",
+      "valor": 100,
+      "nota": "média anual ÷ 12",
+      "natureza": "pontual",
+      "pai": "transporte"
+    },
+    {
+      "id": "farmacia",
+      "nome": "Farmácia e higiene",
+      "valor": 100,
+      "natureza": "flexivel",
+      "pai": "saude"
+    },
+    {
+      "id": "presentes",
+      "nome": "Presentes e datas",
+      "valor": 80,
+      "natureza": "pontual",
+      "pai": "pessoal"
+    },
+    {
+      "id": "dentista",
+      "nome": "Dentista e check-up",
+      "valor": 40,
+      "natureza": "pontual",
+      "pai": "saude"
+    },
+    {
+      "id": "lazer",
+      "nome": "Lazer",
+      "valor": 400,
+      "nota": "cinema, passeios, roupas",
+      "natureza": "flexivel",
+      "pai": null
+    }
+  ],
+  "saida": {
+    "runwayMeses": 6,
+    "negocioPctCusto": 50,
+    "mesesSeguidos": 3
+  },
+  "antiImpulso": {
+    "limite": 300,
+    "horas": 48
+  },
+  "rendaFixa": [
+    {
+      "id": "salario",
+      "nome": "Salário",
+      "valor": 7000
+    }
+  ]
+}

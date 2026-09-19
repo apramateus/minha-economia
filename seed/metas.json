@@ -1,0 +1,10 @@
+{
+  "metas": [
+    {
+      "id": "reserva-emergencia",
+      "nome": "Reserva de emergência",
+      "alvoMesesCusto": 6
+    }
+  ],
+  "aportes": []
+}

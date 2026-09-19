@@ -1,0 +1,14 @@
+node_modules/
+dist/
+# seus dados financeiros e credenciais — nunca vão para o git
+data/
+.env
+.env.*
+!.env.exemplo
+importar/*
+!importar/LEIA-ME.md
+.DS_Store
+
+# instruções pessoais para o Claude (perfil, contas, decisões) — cada pessoa tem o seu
+CLAUDE.local.md
+.equipe/

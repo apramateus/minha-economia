@@ -1,0 +1,174 @@
+{
+  "rendaFixa": [
+    {
+      "id": "salario",
+      "nome": "Salário (exemplo)",
+      "valor": 5500
+    }
+  ],
+  "orcamento": [
+    {
+      "id": "casa",
+      "nome": "Casa",
+      "valor": 0,
+      "natureza": "fixo",
+      "pai": null
+    },
+    {
+      "id": "aluguel",
+      "nome": "Aluguel",
+      "valor": 1800,
+      "natureza": "fixo",
+      "pai": "casa"
+    },
+    {
+      "id": "contas-da-casa",
+      "nome": "Contas da casa",
+      "valor": 0,
+      "natureza": "fixo",
+      "pai": "casa"
+    },
+    {
+      "id": "luz",
+      "nome": "Luz",
+      "valor": 150,
+      "natureza": "fixo",
+      "pai": "contas-da-casa"
+    },
+    {
+      "id": "agua",
+      "nome": "Água",
+      "valor": 80,
+      "natureza": "fixo",
+      "pai": "contas-da-casa"
+    },
+    {
+      "id": "internet",
+      "nome": "Internet",
+      "valor": 100,
+      "natureza": "fixo",
+      "pai": "contas-da-casa"
+    },
+    {
+      "id": "comida",
+      "nome": "Comida",
+      "valor": 0,
+      "natureza": "flexivel",
+      "pai": null
+    },
+    {
+      "id": "mercado",
+      "nome": "Mercado",
+      "valor": 900,
+      "natureza": "flexivel",
+      "pai": "comida"
+    },
+    {
+      "id": "ifood",
+      "nome": "Delivery",
+      "valor": 250,
+      "natureza": "flexivel",
+      "pai": "comida"
+    },
+    {
+      "id": "restaurante",
+      "nome": "Restaurante",
+      "valor": 300,
+      "natureza": "flexivel",
+      "pai": "comida"
+    },
+    {
+      "id": "transporte",
+      "nome": "Transporte",
+      "valor": 0,
+      "natureza": "flexivel",
+      "pai": null
+    },
+    {
+      "id": "gasolina",
+      "nome": "Combustível",
+      "valor": 300,
+      "natureza": "flexivel",
+      "pai": "transporte"
+    },
+    {
+      "id": "app-transporte",
+      "nome": "Uber/99",
+      "valor": 150,
+      "natureza": "flexivel",
+      "pai": "transporte"
+    },
+    {
+      "id": "saude",
+      "nome": "Saúde",
+      "valor": 0,
+      "natureza": "flexivel",
+      "pai": null
+    },
+    {
+      "id": "farmacia",
+      "nome": "Farmácia",
+      "valor": 120,
+      "natureza": "flexivel",
+      "pai": "saude"
+    },
+    {
+      "id": "academia",
+      "nome": "Academia",
+      "valor": 100,
+      "natureza": "fixo",
+      "pai": "saude"
+    },
+    {
+      "id": "dentista",
+      "nome": "Dentista",
+      "valor": 50,
+      "natureza": "pontual",
+      "pai": "saude"
+    },
+    {
+      "id": "pessoal",
+      "nome": "Pessoal",
+      "valor": 0,
+      "natureza": "flexivel",
+      "pai": null
+    },
+    {
+      "id": "assinaturas",
+      "nome": "Assinaturas",
+      "valor": 70,
+      "natureza": "fixo",
+      "pai": "pessoal"
+    },
+    {
+      "id": "lazer",
+      "nome": "Lazer",
+      "valor": 250,
+      "natureza": "flexivel",
+      "pai": "pessoal"
+    },
+    {
+      "id": "roupas",
+      "nome": "Roupas",
+      "valor": 150,
+      "natureza": "pontual",
+      "pai": "pessoal"
+    },
+    {
+      "id": "presentes",
+      "nome": "Presentes",
+      "valor": 80,
+      "natureza": "pontual",
+      "pai": "pessoal"
+    }
+  ],
+  "saida": {
+    "runwayMeses": 6,
+    "negocioPctCusto": 50,
+    "mesesSeguidos": 3
+  },
+  "antiImpulso": {
+    "limite": 300,
+    "horas": 48
+  }
+}

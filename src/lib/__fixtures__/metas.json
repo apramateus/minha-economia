@@ -1,0 +1,8 @@
+{
+  "metas": [
+    { "id": "reserva", "nome": "Reserva de emergência", "alvo": 5000 },
+    { "id": "computador", "nome": "Computador novo", "alvo": 8000, "nota": "Enquanto não compra, também serve de reserva." },
+    { "id": "seis-meses", "nome": "Seis meses de custo", "alvoMesesCusto": 6 }
+  ],
+  "aportes": []
+}

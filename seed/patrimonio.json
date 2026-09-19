@@ -1,0 +1,37 @@
+{
+  "contas": [
+    {
+      "id": "conta",
+      "nome": "Conta corrente (exemplo)",
+      "saldo": 2400,
+      "reserva": false,
+      "demo": true
+    },
+    {
+      "id": "reserva",
+      "nome": "Reserva (exemplo)",
+      "saldo": 6000,
+      "reserva": true,
+      "demo": true
+    }
+  ],
+  "aReceber": [],
+  "bens": [
+    {
+      "id": "notebook",
+      "nome": "Notebook (exemplo)",
+      "valor": 3500,
+      "demo": true
+    }
+  ],
+  "dividas": [
+    {
+      "id": "fatura-cartao",
+      "nome": "Fatura do cartão (exemplo)",
+      "valor": 1350,
+      "tipo": "fatura",
+      "demo": true
+    }
+  ],
+  "snapshots": []
+}
