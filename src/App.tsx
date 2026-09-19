@@ -211,7 +211,7 @@ export function App() {
             )}
             {rota.pagina === 'orcamento' && <Orcamento mes={mes} setMes={setMes} navegar={navegar} />}
             {rota.pagina === 'metas' && <Metas navegar={navegar} />}
-            {rota.pagina === 'patrimonio' && <Patrimonio navegar={navegar} />}
+            {rota.pagina === 'patrimonio' && <Patrimonio navegar={navegar} secao={rota.params.get('secao')} />}
             {rota.pagina === 'celular' && <Celular />}
             {rota.pagina === 'categorizar' && <Categorizar editar={editar} navegar={navegar} />}
             {rota.pagina === 'custo' && <Custo navegar={navegar} de={rota.params.get('de')} />}

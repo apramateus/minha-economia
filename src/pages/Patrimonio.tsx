@@ -1,5 +1,5 @@
 // "Ver mais" do card de patrimônio do Início: contas e investimentos e bens (editáveis); as dívidas têm aba própria.
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { useDados } from '../lib/estado';
 import { brl, brl0, lerValor, valorParaCampo } from '../lib/formato';
@@ -11,11 +11,16 @@ import { Ajuda, Botao, BotaoConfirmar, Card, Campo, Entrada, Folha, TituloCard, 
 type Secao = 'contas' | 'bens';
 type Edicao = { secao: Secao; item: Conta | Item | null };
 
-export function Patrimonio({ navegar }: { navegar: (r: string) => void }) {
+export function Patrimonio({ navegar, secao }: { navegar: (r: string) => void; secao?: string | null }) {
   const { dados } = useDados();
   const p = dados.patrimonio;
   const res = resumoPatrimonio(p);
   const [edicao, setEdicao] = useState<Edicao | null>(null);
+  const bens = useRef<HTMLDivElement>(null);
+  // "Com os bens" do Início abre direto na lista de bens
+  useEffect(() => {
+    if (secao === 'bens') bens.current?.scrollIntoView({ block: 'start' });
+  }, [secao]);
 
   return (
     <div className="space-y-3">
@@ -59,7 +64,9 @@ export function Patrimonio({ navegar }: { navegar: (r: string) => void }) {
           </span>
         </Card>
       </button>
-      <Lista titulo="Bens (valor de revenda)" itens={p.bens} onEditar={(item) => setEdicao({ secao: 'bens', item })} />
+      <div ref={bens} className="scroll-mt-4">
+        <Lista titulo="Bens (valor de revenda)" itens={p.bens} onEditar={(item) => setEdicao({ secao: 'bens', item })} />
+      </div>
 
       {edicao && <FolhaItem edicao={edicao} onFechar={() => setEdicao(null)} />}
     </div>

@@ -10,9 +10,7 @@ import { temExemplo } from '../lib/exemplo';
 import { Ajuda, Card, Medidor, TituloCard } from '../components/ui';
 
 const METAS_NO_INICIO = 3;
-/** meta de patrimônio líquido quando o config não diz outra (pedido do usuário: R$ 50 mil, como um jogo) */
-const META_PATRIMONIO = 50_000;
-/** marcos no caminho até a meta */
+/** marcos no caminho até a meta de patrimônio (só aparece para quem definiu `config.metaPatrimonio`) */
 const MARCOS = [0, 10_000, 25_000];
 
 export function Painel({ navegar }: { navegar: (rota: string) => void }) {
@@ -75,10 +73,19 @@ export function Painel({ navegar }: { navegar: (rota: string) => void }) {
             <div className="mt-1 text-sm text-muted">
               Banco e investimentos {brl0(pat.contas)} − dívidas {brl0(pat.dividas)}
             </div>
-            <MetaPatrimonio liquido={pat.liquido} meta={config.metaPatrimonio ?? META_PATRIMONIO} />
-            <div className="mt-3 flex items-baseline justify-between border-t border-borda pt-3">
-              <span className="text-sm text-ink-2">Com os bens</span>
-              <span className="tabular text-lg font-semibold">{brl0(pat.total)}</span>
+            {config.metaPatrimonio ? <MetaPatrimonio liquido={pat.liquido} meta={config.metaPatrimonio} /> : null}
+            {/* abre a lista de bens (Patrimônio), onde eles são editados */}
+            <div className="mt-3 border-t border-borda pt-2">
+              <button
+                onClick={() => navegar('patrimonio?secao=bens')}
+                className="-mx-2 flex w-[calc(100%+1rem)] items-center justify-between rounded-lg px-2 py-1 text-left hover:bg-surface-2 max-lg:min-h-10"
+              >
+                <span className="text-sm text-ink-2">Com os bens</span>
+                <span className="flex items-center gap-1">
+                  <span className="tabular text-lg font-semibold">{brl0(pat.total)}</span>
+                  <ChevronRight size={16} className="text-muted" />
+                </span>
+              </button>
             </div>
           </Card>
 

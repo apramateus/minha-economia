@@ -65,8 +65,9 @@ no `seed/`, nos testes ou neste arquivo. Numa instalação que só usa o app, n�
   `index.css` (`pointer: coarse`): campos com 16 px (o iPhone não dá zoom) e sem seleção de texto/balão do iOS ao segurar.
 - **Patrimônio líquido = banco + investimentos − dívidas** (pode ser negativo; "a receber" não entra). É a base dos meses de liberdade.
 - **Início** (nota do usuário "tela-de-inicio", na ordem): 1) patrimônio líquido e com os bens ("Ver mais" → `#/patrimonio`: contas e
-  investimentos, total das dívidas, bens), com a **meta de patrimônio** como um jogo (`config.metaPatrimonio`, sem = R$ 50 mil: barra,
-  marcos 0 → 10 mil → 25 mil → meta, "Próximo marco: … · faltam …"); 2) meses de liberdade; 3) metas (3 primeiras; "Ver mais" → `#/metas`); 4) mês até agora; 5) a categorizar.
+  investimentos, total das dívidas, bens; a linha "Com os bens" abre direto a lista de bens, `#/patrimonio?secao=bens`), com a
+  **meta de patrimônio** como um jogo **só para quem definiu `config.metaPatrimonio`** (sem = não aparece; barra, marcos
+  0 → 10 mil → 25 mil → meta, "Próximo marco: … · faltam …"); 2) meses de liberdade; 3) metas (3 primeiras; "Ver mais" → `#/metas`); 4) mês até agora; 5) a categorizar.
   **Início e Orçamento cabem na tela sem rolar** (pedido do usuário): no computador, duas colunas (página `lg:max-w-5xl`).
   Seções (menu lateral no computador, barra embaixo no celular): Início, Gastos, Extrato, Orçamento, Metas, Dívidas (o celular mostra as 5 primeiras + Copiloto).
 - **Dívidas** (`#/dividas`, `src/pages/Dividas.tsx`): a fatura do cartão (tipo `fatura`) vem da sincronização e só aparece (sem editar/excluir);
