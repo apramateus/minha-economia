@@ -3,11 +3,11 @@
 import { useState } from 'react';
 import { AlertTriangle, ChevronRight, FolderTree, Plus, ReceiptText, X } from 'lucide-react';
 import { useDados } from '../lib/estado';
-import { isoMes, mesesAnteriores, nomeMesCurto, somarMeses } from '../lib/datas';
+import { nomeMesCurto, somarMeses } from '../lib/datas';
 import { brl0, lerValor, valorParaCampo } from '../lib/formato';
 import {
   custoEssencial,
-  custoEssencialReal,
+  custoReal,
   r2,
   rendaFixaMensal,
   rendaMedia,
@@ -23,8 +23,7 @@ export function Orcamento({ mes, setMes, navegar }: { mes: string; setMes: (m: s
   const { dados } = useDados();
   const { config, transacoes } = dados;
   const [rendaAberta, setRendaAberta] = useState(false);
-  const mesPassado = mesesAnteriores(isoMes(), 1);
-  const custoReal = custoEssencialReal(config, transacoes, mesPassado);
+  const real = custoReal(config, transacoes);
   const sobra = sobraPlanejada(config);
 
   const r = resumoMes(config, transacoes, mes);
@@ -62,8 +61,8 @@ export function Orcamento({ mes, setMes, navegar }: { mes: string; setMes: (m: s
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-muted">Real ({nomeMesCurto(mesPassado[0]).slice(0, 3)})</div>
-                  <div className="tabular text-xl font-semibold">{brl0(custoReal)}</div>
+                  <div className="text-xs text-muted">{real.fonte === 'real' ? `Real (${nomeMesCurto(real.meses[0]).slice(0, 3)})` : 'Real'}</div>
+                  <div className="tabular text-xl font-semibold">{real.fonte === 'real' ? brl0(real.valor) : '—'}</div>
                 </div>
               </div>
             </Card>

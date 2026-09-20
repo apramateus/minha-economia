@@ -767,12 +767,12 @@ export function Copiloto({
   const desfazer = async (m: Mensagem) => {
     if (!m.foto || !atual) return;
     const convId = atual.id;
-    const { status } = await postar('/api/copiloto/desfazer', { foto: m.foto, arquivos: m.alterados });
+    const { status, resposta } = await postar('/api/copiloto/desfazer', { foto: m.foto, arquivos: m.alterados });
     if (deuCerto(status)) {
       await recarregar();
       mexerMensagem(convId, m.id, { desfeito: true });
       aviso('Alterações desfeitas');
-    } else aviso('Não consegui desfazer', 'erro');
+    } else aviso(resposta.erro ?? 'Não consegui desfazer', 'erro');
   };
 
   // no celular, focar abriria o teclado por cima da conversa

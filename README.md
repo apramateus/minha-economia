@@ -52,6 +52,24 @@ Um chat com o Claude dentro do app (menu lateral ou ⌘J; no celular, a última 
 com a sua assinatura. Lê seus dados, responde e **propõe** mudanças em categorias, regras, orçamento e metas: nada muda
 até você tocar em **OK** (ou **Descartar**), e o que for aplicado tem **Desfazer**. Ele não mexe no código.
 
+## Fora de casa (opcional)
+
+Dá para publicar o app na [Vercel](https://vercel.com) e usar do celular em qualquer lugar, no mesmo endereço, com os
+dados numa store privada em vez de `data/`. Quem não fizer isso não muda nada: o app continua só neste computador.
+
+```bash
+npx vercel link                 # cria o projeto na sua conta
+npx vercel blob create-store dados --access private   # onde os dados ficam
+npm run senha                   # cria a senha do app (só o hash vai para a Vercel)
+npm run subir-dados             # leva os dados deste computador para a store
+npx vercel --prod               # publica
+```
+
+Depois, no `.env.local`, `MINHA_ECONOMIA_DEPOSITO=blob` faz este computador usar os mesmos dados da nuvem.
+Quem abrir o endereço sem a senha só vê a tela de senha; quem acerta fica entrado por um ano naquele aparelho.
+O Copiloto continua só aqui (ele usa o Claude Code deste computador). A sincronização com o banco passa a rodar
+sozinha 1×/dia na nuvem.
+
 ## Atualizar
 
 ```bash

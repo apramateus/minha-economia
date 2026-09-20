@@ -99,7 +99,7 @@ export function custoEssencialReal(c: Config, ts: Transacao[], meses: string[]):
 
 export interface CustoReal {
   valor: number;
-  /** o mês usado (o anterior ao atual), ou vazio quando caiu no plano */
+  /** os meses que tinham lançamentos (a média é só sobre eles), ou vazio quando caiu no plano */
   meses: string[];
   /** 'plano' quando ainda não há mês completo com dados */
   fonte: 'real' | 'plano';
@@ -109,9 +109,10 @@ export interface CustoReal {
  * Custo de verdade: o que saiu no mês passado (pontuais pela média, com o não planejado). Decisão do usuário:
  * o mês anterior, não a média — responde rápido quando o hábito melhora. É a base dos meses de liberdade
  * e de tudo que é "meses de custo". Sem lançamentos no mês passado, usa o plano.
+ * `quantos` > 1 (Custo para viver) faz a média — só dos meses que têm lançamentos.
  */
-export function custoReal(c: Config, ts: Transacao[], mesAtual: string = isoMes()): CustoReal {
-  const meses = mesesAnteriores(mesAtual, 1).filter((m) => despesas(doMes(ts, m)).length > 0);
+export function custoReal(c: Config, ts: Transacao[], mesAtual: string = isoMes(), quantos = 1): CustoReal {
+  const meses = mesesAnteriores(mesAtual, quantos).filter((m) => despesas(doMes(ts, m)).length > 0);
   if (!meses.length) return { valor: custoEssencial(c), meses: [], fonte: 'plano' };
   return { valor: custoEssencialReal(c, ts, meses), meses, fonte: 'real' };
 }

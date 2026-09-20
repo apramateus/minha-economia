@@ -12,6 +12,11 @@ no `seed/`, nos testes ou neste arquivo. Numa instalação que só usa o app, n�
 - `npm test` (Vitest: cálculos e importadores) · `npm run typecheck`
 - Mudou algo em `server/` (API, copiloto, Pluggy)? O Vite **não** recarrega sozinho: reinicie o servidor (fechar e abrir o atalho).
 - Stack: Vite + React + TS + Tailwind v4 + Recharts. Sem banco: o plugin `server/api.ts` lê/grava `data/*.json`.
+- **Ninguém grava por cima de ninguém:** cada arquivo tem uma versão (hash do conteúdo). A leitura devolve `{dados, versoes}`; o PUT
+  manda a versão que leu (`If-Match`) e, se o arquivo já mudou (outro aparelho, a sincronização, o copiloto), volta 409 com o conteúdo
+  de agora e o app **refaz a sua mudança por cima** (`src/lib/estado.tsx`). No servidor, quem lê-e-grava faz isso dentro de `emOrdem`
+  (`server/armazenamento.ts`), um de cada vez. Desfazer nunca regrava o arquivo inteiro: reverte só o que aquela ação mudou (`reverter`
+  em `src/lib/mescla.ts`). A API só aceita pedidos que mudam algo vindos do próprio app (Origin), não de outro site aberto no navegador.
 
 ## Dados (`data/`, fora do git)
 - **Instalação nova = números de exemplo:** sem `data/`, o app copia o `seed/` (fictício: categorias genéricas, "Salário (exemplo)",
@@ -41,7 +46,8 @@ no `seed/`, nos testes ou neste arquivo. Numa instalação que só usa o app, n�
   um pico só = Pontual) nos filtros, na etiqueta, no detalhe e no botão direito.
 - **Dois custos:** `custoEssencial` = o PLANO (soma de todas as categorias; base da sobra). `custoReal` = o que saiu no **mês passado** nos fixos +
   flexíveis + não planejado, **mais os pontuais pela média do plano** (decisão do usuário: mês anterior, não média; pontual pela média para um mês
-  de IPVA não distorcer) = base dos **meses de liberdade**, do critério de saída e das metas em "meses de custo". Sem dados, cai no plano.
+  de IPVA não distorcer) = base dos **meses de liberdade**, do critério de saída e das metas em "meses de custo". Sem dados, cai no plano
+  (nos meses de liberdade; em Orçamento e Custo para viver o real fica "—", e a média de 2–3 meses só conta os meses que têm lançamentos).
   Sobra para as metas = renda fixa − plano do mês. Orçamento → "Custo para viver" mostra plano × real por tipo.
 - **Removidos a pedido do usuário (não recriar sem ele pedir):** meta de pedidos do iFood, "pode gastar hoje", card de diversão no Início,
   botões Guardar e Entrou freela (e a regra do freela), bônus trimestral/imposto na renda, "a receber", critério para sair do emprego,
@@ -99,6 +105,27 @@ no `seed/`, nos testes ou neste arquivo. Numa instalação que só usa o app, n�
   há banco que manda saldo 0) e os investimentos de cada item → conta `investimentos-<conta>` (`reserva: false`, não enche metas).
   Ids de instalações antigas (`fatura-c6`, `c6-cdb-cartao`) continuam valendo se já existirem nos dados.
 - Itens MeuPluggy não aceitam update manual (a Pluggy atualiza 1×/dia); conta nova exige reconectar na demo = item novo.
+
+## No ar (opcional: Vercel)
+- Quem quiser o app fora de casa 24h publica na **Vercel**; quem não quiser não muda nada (o padrão continua sendo
+  `data/` neste computador). O código é o mesmo nos dois.
+- **Depósito dos dados** (`server/deposito.ts`): `arquivo` (padrão) ou `blob` (store **privada** da Vercel Blob; só as
+  funções leem, com token). Escolha: `MINHA_ECONOMIA_DADOS` definido → sempre arquivo (cópia de trabalho do copiloto);
+  rodando na Vercel → blob; senão, `MINHA_ECONOMIA_DEPOSITO`. A `versao` que o app vê continua sendo o hash do conteúdo;
+  no blob, o `If-Match` vira `ifMatch` de etag (conflito = 409, como em casa). Backup do dia: `backups/AAAA-MM-DD/`.
+- **Rotas** (`server/rotas.ts`): a mesma função responde no Vite (`server/api.ts`) e nas funções da Vercel (`api/`).
+  Na nuvem existem só `/api/dados`, `/api/banco`, `/api/ambiente`, `/api/entrar`, `/api/sair` e `/api/cron/sincronizar`;
+  `/api/copiloto` e `/api/rede` são só de casa.
+- **Tranca** (`middleware.ts`): sem o cookie `me_sessao` (HMAC com `APP_SEGREDO`, 1 ano), página vai para `/entrar`
+  (`public/entrar.html`) e `/api/*` devolve 401. A senha é conferida por SHA-256 contra `APP_SENHA_HASH`
+  (`npm run senha` cria/troca; a senha em si nunca é guardada). O cron se defende com `CRON_SECRET`.
+- **Copiloto não existe na nuvem** (ele roda o Claude Code deste Mac): o app pergunta `/api/ambiente` e esconde tudo dele.
+- **Sincronização**: cron 1×/dia (`vercel.json`) + o botão Atualizar de qualquer lugar; as credenciais da Pluggy ficam
+  nas variáveis do projeto na Vercel.
+- **Migrar os dados de casa para a nuvem:** `npm run subir-dados [-- --simular]`. Com `MINHA_ECONOMIA_DEPOSITO=blob` no
+  `.env.local`, o Mac passa a ler e gravar os mesmos dados da nuvem (sem internet, o app de casa não abre).
+- Publicar: `npx vercel --prod` (ou `git push`, se o projeto estiver ligado ao GitHub). `.vercelignore` guarda `data/`,
+  `.env*` e `CLAUDE.local.md` fora do deploy.
 
 ## Categorias e regras
 - **Árvore do usuário** (`src/lib/categorias.ts`): qualquer categoria pode ficar dentro de qualquer outra; todas são pastas (a de cima mostra
@@ -166,8 +193,9 @@ no `seed/`, nos testes ou neste arquivo. Numa instalação que só usa o app, n�
   gravam nela via `MINHA_ECONOMIA_DADOS`, em `server/armazenamento.ts`). O que mudar vira uma **proposta**: cartão "Quer aplicar?" com
   resumo (`resumoDaMudanca`) e OK/Descartar. OK (`/api/copiloto/aplicar`) = mescla de três vias com o que o usuário mudou enquanto isso
   (`mesclar3` em `src/lib/mescla.ts`; mexeram os dois no mesmo lugar → 409 com os conflitos, nada aplicado) + foto em
-  `data/backups/copiloto/<carimbo>/` para o Desfazer (restaura só os arquivos aplicados). Guarda as últimas 20 propostas.
-- Permissões: ler tudo (menos `.env*`), alterar só a cópia de trabalho, Bash só `npm run resumo|recategorizar|sincronizar|importar`, WebSearch/WebFetch.
+  `data/backups/copiloto/<carimbo>/` para o Desfazer (antes e depois de cada arquivo: desfazer volta só o que a proposta mudou; se você
+  mexeu no mesmo lugar depois, avisa e não desfaz nada). Guarda as últimas 20 propostas.
+- Permissões: ler só a pasta do app (`blockReadsOutsideWorkingDirectories`, e nunca `.env*`), alterar só a cópia de trabalho, Bash só `npm run resumo|recategorizar|sincronizar|importar`, WebSearch/WebFetch.
 - **Tela** (`src/components/Copiloto.tsx`): no computador, painel fixo à esquerda logo depois do menu (o conteúdo anda para a direita
   e continua usável); recolhe/abre pelo menu, pelo cabeçalho ou ⌘J; largura ajustável na borda (320–640 px). Histórico de conversas
   (cada uma com a sua sessão `--resume`), sugestões conforme a tela, resposta chegando aos poucos, passos recolhíveis, Copiar/Refazer.

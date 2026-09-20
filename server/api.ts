@@ -1,8 +1,8 @@
-// Plugin do Vite: expõe data/*.json em /api/dados/<nome> (GET lê, PUT grava).
+// Plugin do Vite: a API do app em casa. As rotas de dados e de banco são as mesmas da nuvem (`rotas.ts`);
+// o copiloto e o endereço da rede só existem aqui.
 import type { Plugin } from 'vite';
 import type { IncomingMessage } from 'node:http';
-import { gravar, ler, lerTudo, nomeValido } from './armazenamento.ts';
-import { lerCredenciais, sincronizar } from './pluggy.ts';
+import { CABECALHOS_JSON, responder } from './rotas.ts';
 import { rotasCopiloto } from './copiloto.ts';
 import { execFile } from 'node:child_process';
 import os from 'node:os';
@@ -44,6 +44,17 @@ export function apiDados(): Plugin {
   return {
     name: 'api-dados',
     configureServer(server) {
+      // Só o próprio app manda pedidos que mudam algo: um site aberto no navegador não consegue gravar,
+      // sincronizar nem falar com o copiloto por baixo dos panos.
+      server.middlewares.use('/api', (req, res, next) => {
+        const origem = req.headers.origin;
+        if (req.method === 'GET' || req.method === 'HEAD' || !origem) return next();
+        if (origem.toLowerCase() === `http://${String(req.headers.host ?? '').toLowerCase()}`) return next();
+        res.statusCode = 403;
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.end(JSON.stringify({ erro: 'pedido de outro site' }));
+      });
+
       // Endereço para abrir no celular (mesma Wi-Fi)
       server.middlewares.use('/api/rede', async (_req, res) => {
         const porta = server.config.server.port ?? 5180;
@@ -62,50 +73,24 @@ export function apiDados(): Plugin {
       // Copiloto (Claude Code com a assinatura do usuário)
       server.middlewares.use('/api/copiloto', rotasCopiloto());
 
-      // Banco (Meu Pluggy): status e sincronização. As credenciais ficam só aqui no servidor.
-      server.middlewares.use('/api/banco', async (req, res) => {
-        const responder = (status: number, corpo: unknown) => {
-          res.statusCode = status;
-          res.setHeader('Content-Type', 'application/json; charset=utf-8');
-          res.setHeader('Cache-Control', 'no-store');
-          res.end(JSON.stringify(corpo));
-        };
-        const rota = (req.url ?? '/').split('?')[0].replace(/\/+$/, '');
+      // Dados (/api/dados) e banco (/api/banco): o mesmo código das funções da Vercel
+      server.middlewares.use('/api', async (req, res) => {
         try {
-          if (req.method === 'GET' && rota === '') {
-            const { faltando } = await lerCredenciais();
-            const patrimonio = await ler('patrimonio');
-            return responder(200, { configurado: faltando.length === 0, faltando, sincronizadoEm: patrimonio.sincronizadoEm ?? null });
-          }
-          if (req.method === 'POST' && rota === '/sincronizar') return responder(200, await sincronizar());
-          return responder(404, { erro: 'rota desconhecida' });
+          const metodo = req.method ?? 'GET';
+          const cabecalhos = Object.fromEntries(Object.entries(req.headers).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v]));
+          const r = await responder({
+            metodo,
+            caminho: `/api${req.url ?? '/'}`,
+            cabecalhos,
+            corpo: metodo === 'GET' || metodo === 'HEAD' ? undefined : await lerCorpo(req),
+          });
+          res.statusCode = r.status;
+          for (const [k, v] of Object.entries({ ...CABECALHOS_JSON, ...r.cabecalhos })) res.setHeader(k, v);
+          res.end(JSON.stringify(r.corpo));
         } catch (e) {
-          responder(500, { erro: (e as Error).message });
-        }
-      });
-
-      server.middlewares.use('/api/dados', async (req, res) => {
-        const responder = (status: number, corpo: unknown) => {
-          res.statusCode = status;
+          res.statusCode = 500;
           res.setHeader('Content-Type', 'application/json; charset=utf-8');
-          res.setHeader('Cache-Control', 'no-store');
-          res.end(JSON.stringify(corpo));
-        };
-        try {
-          const nome = (req.url ?? '/').split('?')[0].replace(/^\/+|\/+$/g, '');
-
-          if (req.method === 'GET' && nome === '') return responder(200, await lerTudo());
-          if (!nomeValido(nome)) return responder(404, { erro: 'arquivo desconhecido' });
-          if (req.method === 'GET') return responder(200, await ler(nome));
-          if (req.method === 'PUT') {
-            const dados = JSON.parse(await lerCorpo(req));
-            if (dados === null || typeof dados !== 'object') return responder(400, { erro: 'JSON inválido' });
-            await gravar(nome, dados);
-            return responder(200, { ok: true });
-          }
-          return responder(405, { erro: 'método não suportado' });
-        } catch (e) {
-          responder(500, { erro: (e as Error).message });
+          res.end(JSON.stringify({ erro: (e as Error).message }));
         }
       });
     },

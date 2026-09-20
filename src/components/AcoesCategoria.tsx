@@ -3,7 +3,8 @@
 import { useCallback } from 'react';
 import { CornerLeftUp, FolderInput, FolderTree, List, Merge, Pencil, SquarePen, Trash2, TriangleAlert } from 'lucide-react';
 import { useDados } from '../lib/estado';
-import { criar, editar, excluir, idDeCategoria, juntar, mover, NATUREZAS, nomeLivre, paiDe, type DadosCategorias, type ResultadoCategorias } from '../lib/categorias';
+import { reverter } from '../lib/mescla';
+import { criar, editar, excluir, juntar, mover, NATUREZAS, nomeLivre, paiDe, type DadosCategorias, type ResultadoCategorias } from '../lib/categorias';
 import type { Config, LinhaOrcamento, Natureza, Transacao } from '../lib/tipos';
 import { itensDeCategorias, veioDoToque, type ItemMenu } from './Menu';
 import { IconeComportamento } from './ui';
@@ -14,13 +15,13 @@ export const rotuloArvore = (p: { nome: string; nivel: number }) => `${'   '.
 export function useOperacoesCategorias() {
   const { dados, atualizar, aviso } = useDados();
 
-  /** Volta config, lançamentos e regras para como estavam antes. */
-  const desfazerPara = (antes: DadosCategorias) => ({
+  /** Desfaz só o que a operação mudou: o que chegou depois (uma sincronização, o outro aparelho) continua. */
+  const desfazerPara = (antes: DadosCategorias, depois: ResultadoCategorias) => ({
     rotulo: 'Desfazer',
     fazer: async () => {
-      await atualizar('transacoes', () => antes.transacoes);
-      await atualizar('regras', () => antes.regras);
-      await atualizar('config', () => antes.config);
+      await atualizar('transacoes', reverter(antes.transacoes, depois.transacoes));
+      await atualizar('regras', reverter(antes.regras, depois.regras));
+      await atualizar('config', reverter(antes.config, depois.config));
       aviso('Desfeito');
     },
   });
@@ -29,11 +30,11 @@ export function useOperacoesCategorias() {
   const nosTres = async (op: (d: DadosCategorias) => ResultadoCategorias, msg: string) => {
     const antes = { config: dados.config, transacoes: dados.transacoes, regras: dados.regras };
     try {
-      op(dados);
+      const depois = op(dados);
       await atualizar('transacoes', (ts) => op({ ...dados, transacoes: ts }).transacoes);
       await atualizar('regras', (rs) => op({ ...dados, regras: rs }).regras);
       await atualizar('config', (c) => op({ ...dados, config: c }).config);
-      aviso(msg, 'ok', desfazerPara(antes));
+      aviso(msg, 'ok', desfazerPara(antes, depois));
       return true;
     } catch (e) {
       aviso((e as Error).message, 'erro');
@@ -70,15 +71,8 @@ export function useOperacoesCategorias() {
       return (await soConfig(() => r.config)) ? r.id : null;
     },
 
-    /** Muda nome, plano, tipo ou nota, sem aviso. A recém-criada ("nova-categoria") ganha id do nome enquanto nada aponta para ela. */
-    editar: (id: string, campos: Partial<Pick<LinhaOrcamento, 'nome' | 'valor' | 'natureza' | 'nota'>>) =>
-      soConfig((c) => {
-        const r = editar(c, id, campos);
-        const livre = /^nova-categoria(-\d+)?$/.test(id) && !dados.transacoes.some((t) => t.linha === id) && !dados.regras.some((g) => g.linha === id);
-        if (!campos.nome?.trim() || !livre) return r;
-        const novo = idDeCategoria(campos.nome, r.orcamento.filter((l) => l.id !== id));
-        return { ...r, orcamento: r.orcamento.map((l) => (l.id === id ? { ...l, id: novo } : l.pai === id ? { ...l, pai: novo } : l)) };
-      }),
+    /** Muda nome, plano, tipo ou nota, sem aviso. O id nunca muda: quem está com a categoria aberta continua com ela. */
+    editar: (id: string, campos: Partial<Pick<LinhaOrcamento, 'nome' | 'valor' | 'natureza' | 'nota'>>) => soConfig((c) => editar(c, id, campos)),
 
     /** Junta `outra` em `fica`; `novoNome` renomeia a que fica. */
     juntar: (outra: string, fica: string, novoNome?: string) =>

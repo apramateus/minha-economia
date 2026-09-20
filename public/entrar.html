@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Minha Economia</title>
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <style>
+      /* mesmas cores do app (src/index.css) */
+      :root {
+        color-scheme: light;
+        --page: #f9f9f7;
+        --surface: #fcfcfb;
+        --ink: #0b0b0b;
+        --muted: #7a7873;
+        --border: rgba(11, 11, 11, 0.1);
+        --accent: #2a78d6;
+        --critical: #d03b3b;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          --page: #0d0d0d;
+          --surface: #1a1a19;
+          --ink: #ffffff;
+          --muted: #979590;
+          --border: rgba(255, 255, 255, 0.1);
+          --accent: #3987e5;
+          --critical: #e25c5c;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: var(--page);
+        color: var(--ink);
+        font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+        -webkit-tap-highlight-color: transparent;
+      }
+      main {
+        width: 100%;
+        max-width: 22rem;
+        padding: 24px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--surface);
+      }
+      h1 {
+        margin: 0 0 16px;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+      input,
+      button {
+        width: 100%;
+        font: inherit;
+        font-size: 16px; /* menos que isso faz o iPhone dar zoom ao focar */
+        border-radius: 12px;
+      }
+      input {
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        background: var(--page);
+        color: var(--ink);
+        outline: none;
+      }
+      input:focus {
+        border-color: var(--accent);
+      }
+      button {
+        margin-top: 12px;
+        min-height: 44px;
+        padding: 0 16px;
+        border: 0;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:active {
+        opacity: 0.8;
+      }
+      button:disabled {
+        opacity: 0.4;
+      }
+      p {
+        margin: 12px 0 0;
+        font-size: 13px;
+        color: var(--critical);
+      }
+      p[hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Minha Economia</h1>
+      <form id="forma">
+        <input id="senha" type="password" name="senha" aria-label="Senha" autocomplete="current-password" autofocus />
+        <button id="botao" type="submit">Entrar</button>
+      </form>
+      <p id="erro" role="alert" hidden></p>
+    </main>
+    <script>
+      const forma = document.getElementById('forma');
+      const campo = document.getElementById('senha');
+      const botao = document.getElementById('botao');
+      const erro = document.getElementById('erro');
+
+      /** para onde ir depois de entrar: só caminho deste site (nunca "//outro.site"). O #/tela não chega ao servidor,
+       *  mas o navegador o carrega junto na ida para cá, então ele volta daqui. */
+      function destino() {
+        const de = new URLSearchParams(location.search).get('de') || '/';
+        return (/^\/(?!\/)/.test(de) ? de : '/') + location.hash;
+      }
+
+      function avisar(texto) {
+        erro.textContent = texto;
+        erro.hidden = false;
+        botao.disabled = false;
+        campo.focus();
+        campo.select();
+      }
+
+      forma.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (botao.disabled) return;
+        botao.disabled = true;
+        erro.hidden = true;
+        try {
+          const r = await fetch('/api/entrar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ senha: campo.value }),
+          });
+          if (r.ok) {
+            location.replace(destino());
+            return;
+          }
+          avisar(r.status === 429 ? 'Espere um pouco' : 'Senha errada');
+        } catch {
+          avisar('Sem conexão');
+        }
+      });
+    </script>
+  </body>
+</html>

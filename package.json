@@ -14,10 +14,13 @@
     "sincronizar": "tsx scripts/sincronizar.ts",
     "recategorizar": "tsx scripts/recategorizar.ts",
     "limpar-exemplo": "tsx scripts/limpar-exemplo.ts",
+    "subir-dados": "tsx scripts/subir-dados.ts",
+    "senha": "tsx scripts/senha.ts",
     "abrir": "tsx scripts/abrir.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
+    "@vercel/blob": "^2.8.0",
     "d3-interpolate": "^3.0.1",
     "d3-selection": "^3.0.0",
     "d3-transition": "^3.0.1",
@@ -39,6 +42,7 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@vercel/node": "^13.0.1",
     "@vitejs/plugin-react": "^6.1.1",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.13",

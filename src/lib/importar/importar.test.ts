@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import configFixture from '../__fixtures__/config.json';
 import regrasFixture from '../__fixtures__/regras.json';
-import type { Config, Regra } from '../tipos';
+import type { Config, Regra, Transacao } from '../tipos';
 import { parseData, parseValor } from './formatos';
-import { acharRegra, lerArquivo, montarPrevia, sugerirPadrao } from './index';
+import { acharRegra, lerArquivo, montarPrevia, reclassificar, sugerirPadrao } from './index';
 
 const config = configFixture as Config;
 const regras = regrasFixture as Regra[];
@@ -155,5 +155,48 @@ describe('lançamentos feitos à mão', () => {
     expect(p[0].jaLancada?.id).toBe('m1');
     expect(p[1].jaLancada).toBeUndefined(); // o segundo pedido igual é outro pedido
     expect(p[3].jaLancada).toBeUndefined();
+
+    // o mesmo valor lançado à mão noutra conta (dinheiro) é outra compra: a do cartão entra normalmente
+    const p2 = montarPrevia(lido.linhas!, 'cartao', regras, config, [{ ...manual, conta: 'dinheiro' }]);
+    expect(p2.every((x) => !x.jaLancada)).toBe(true);
+  });
+});
+
+describe('entrou dinheiro num lugar que tem regra de gasto', () => {
+  const regra: Regra[] = [{ padrao: 'LOJA CENTRAL', tipo: 'despesa' }];
+  const entrou = { data: '2026-09-10', valor: 80, descricao: 'LOJA CENTRAL FILIAL 475' };
+  const uma = (conta: string, l = entrou) => montarPrevia([l], conta, regra, config, [])[0].transacao;
+
+  it('no cartão é estorno (desconta do gasto) e na conta é entrada', () => {
+    expect(uma('cartao')).toMatchObject({ tipo: 'despesa', valor: -80 });
+    expect(uma('conta')).toMatchObject({ tipo: 'receita', valor: 80 });
+  });
+
+  it('o que sai continua gasto', () => {
+    expect(uma('conta', { ...entrou, valor: -80 })).toMatchObject({ tipo: 'despesa', valor: 80 });
+  });
+});
+
+describe('reaplicar as regras (npm run recategorizar)', () => {
+  const t: Transacao = {
+    id: '1',
+    data: '2026-09-10',
+    valor: 320,
+    tipo: 'transferencia',
+    linha: null,
+    descricao: 'MENSALIDADE ESCOLA DE IDIOMAS',
+    conta: 'conta',
+    origem: 'import',
+    hash: 'ofx:conta:z1',
+  };
+  const agoraECurso: Regra[] = [{ padrao: 'ESCOLA DE IDIOMAS', linha: 'cursos' }];
+
+  it('o que estava como transferência volta a ser gasto quando a regra passa a dar uma categoria', () => {
+    expect(reclassificar(t, agoraECurso, config)).toMatchObject({ tipo: 'despesa', linha: 'cursos' });
+  });
+
+  it('sem regra que diga outra coisa continua transferência, e o que você editou nunca muda', () => {
+    expect(reclassificar(t, [{ padrao: 'MENSALIDADE', tipo: 'transferencia' }], config)).toBe(t);
+    expect(reclassificar({ ...t, editado: true }, agoraECurso, config)).toMatchObject({ tipo: 'transferencia' });
   });
 });

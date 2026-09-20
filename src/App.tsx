@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BarChart3, HandCoins, Home, ListOrdered, Sparkles, Target, Wallet } from 'lucide-react';
+import { useAmbiente } from './lib/ambiente';
 import { isoMes } from './lib/datas';
 import type { Transacao } from './lib/tipos';
 import { Lancamento } from './components/Lancamento';
@@ -84,21 +85,25 @@ export function App() {
   const [importar, setImportar] = useState(false);
   const computador = useComputador();
   const janela = useLarguraJanela();
+  // na nuvem o copiloto não existe (ele roda o Claude Code do Mac): some do menu, da barra do celular e do ⌘J
+  const temCopiloto = useAmbiente().copiloto;
   useToqueLongo();
   // no computador o copiloto lembra se ficou aberto; no celular sempre começa fechado (é tela cheia)
   const [copiloto, setCopiloto] = useState(() => window.matchMedia('(min-width: 1024px)').matches && lerLocal('copiloto.aberto') === '1');
   const [larguraCopiloto, setLarguraCopiloto] = useState(() => limitar(Number(lerLocal('copiloto.largura')) || LARGURA_PADRAO));
   const [copilotoRodando, setCopilotoRodando] = useState(false);
+  const copilotoAberto = copiloto && temCopiloto;
   const fecharCopiloto = useCallback(() => setCopiloto(false), []);
   const mudarLargura = useCallback((px: number) => setLarguraCopiloto(limitar(px)), []);
 
   useEffect(() => {
-    if (computador) gravarLocal('copiloto.aberto', copiloto ? '1' : '0');
-  }, [copiloto, computador]);
+    if (computador && temCopiloto) gravarLocal('copiloto.aberto', copiloto ? '1' : '0');
+  }, [copiloto, computador, temCopiloto]);
   useEffect(() => {
     gravarLocal('copiloto.largura', String(larguraCopiloto));
   }, [larguraCopiloto]);
   useEffect(() => {
+    if (!temCopiloto) return;
     const atalho = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'j') {
         e.preventDefault();
@@ -107,9 +112,9 @@ export function App() {
     };
     window.addEventListener('keydown', atalho);
     return () => window.removeEventListener('keydown', atalho);
-  }, []);
+  }, [temCopiloto]);
 
-  const painelAberto = computador && copiloto;
+  const painelAberto = computador && copilotoAberto;
   const menuCompacto = painelAberto && janela - MENU - MIN_CONTEUDO < LARGURA_MIN;
   const menu = menuCompacto ? MENU_COMPACTO : MENU;
   const painel = painelAberto ? Math.max(LARGURA_MIN, Math.min(larguraCopiloto, janela - menu - MIN_CONTEUDO)) : 0;
@@ -177,26 +182,28 @@ export function App() {
             );
           })}
         </nav>
-        <div className="mt-auto">
-          <button
-            onClick={() => setCopiloto((a) => !a)}
-            aria-pressed={copiloto}
-            aria-label="Copiloto"
-            title={copiloto ? 'Recolher o copiloto (⌘J)' : 'Abrir o copiloto (⌘J)'}
-            className={`relative flex w-full items-center gap-3 rounded-xl py-2 text-sm font-medium ${menuCompacto ? 'justify-center' : 'px-3'} ${
-              copiloto ? 'bg-accent-weak text-accent-strong' : 'text-ink-2 hover:bg-surface-2'
-            }`}
-          >
-            <Sparkles size={18} strokeWidth={copiloto ? 2.4 : 1.8} />
-            {!menuCompacto && (
-              <>
-                Copiloto
-                <kbd className="ml-auto font-sans text-xs font-normal text-muted">⌘J</kbd>
-              </>
-            )}
-            {copilotoRodando && !copiloto && <span className="absolute left-7 top-1.5 size-2 animate-pulse rounded-full bg-accent" />}
-          </button>
-        </div>
+        {temCopiloto && (
+          <div className="mt-auto">
+            <button
+              onClick={() => setCopiloto((a) => !a)}
+              aria-pressed={copilotoAberto}
+              aria-label="Copiloto"
+              title={copilotoAberto ? 'Recolher o copiloto (⌘J)' : 'Abrir o copiloto (⌘J)'}
+              className={`relative flex w-full items-center gap-3 rounded-xl py-2 text-sm font-medium ${menuCompacto ? 'justify-center' : 'px-3'} ${
+                copilotoAberto ? 'bg-accent-weak text-accent-strong' : 'text-ink-2 hover:bg-surface-2'
+              }`}
+            >
+              <Sparkles size={18} strokeWidth={copilotoAberto ? 2.4 : 1.8} />
+              {!menuCompacto && (
+                <>
+                  Copiloto
+                  <kbd className="ml-auto font-sans text-xs font-normal text-muted">⌘J</kbd>
+                </>
+              )}
+              {copilotoRodando && !copilotoAberto && <span className="absolute left-7 top-1.5 size-2 animate-pulse rounded-full bg-accent" />}
+            </button>
+          </div>
+        )}
       </aside>
 
       {/* no computador, o conteúdo anda para a direita com o copiloto aberto */}
@@ -223,7 +230,7 @@ export function App() {
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-borda bg-surface/95 pb-safe backdrop-blur lg:hidden" aria-label="Seções">
         <ul className="mx-auto flex max-w-xl">
           {ABAS_CELULAR.map(({ id, rotulo, Icone }) => {
-            const ativo = !copiloto && abaAtivaCelular === id;
+            const ativo = !copilotoAberto && abaAtivaCelular === id;
             return (
               <li key={id} className="flex-1">
                 <a
@@ -238,32 +245,36 @@ export function App() {
               </li>
             );
           })}
-          <li className="flex-1">
-            <button
-              onClick={() => setCopiloto((a) => !a)}
-              aria-pressed={copiloto}
-              className={`relative flex h-14 w-full flex-col items-center justify-center gap-0.5 text-[10px] font-medium tracking-tight ${copiloto ? 'text-accent-strong' : 'text-muted'}`}
-            >
-              <Sparkles size={22} strokeWidth={copiloto ? 2.4 : 1.8} />
-              Copiloto
-              {copilotoRodando && !copiloto && <span className="absolute right-[calc(50%-0.9rem)] top-1.5 size-2 animate-pulse rounded-full bg-accent" />}
-            </button>
-          </li>
+          {temCopiloto && (
+            <li className="flex-1">
+              <button
+                onClick={() => setCopiloto((a) => !a)}
+                aria-pressed={copilotoAberto}
+                className={`relative flex h-14 w-full flex-col items-center justify-center gap-0.5 text-[10px] font-medium tracking-tight ${copilotoAberto ? 'text-accent-strong' : 'text-muted'}`}
+              >
+                <Sparkles size={22} strokeWidth={copilotoAberto ? 2.4 : 1.8} />
+                Copiloto
+                {copilotoRodando && !copilotoAberto && <span className="absolute right-[calc(50%-0.9rem)] top-1.5 size-2 animate-pulse rounded-full bg-accent" />}
+              </button>
+            </li>
+          )}
         </ul>
       </nav>
 
       <Lancamento aberta={aberto !== null} onFechar={fecharLancamento} editar={aberto} />
       <Importar aberta={importar} onFechar={fecharImportar} />
-      <Copiloto
-        aberto={copiloto}
-        onFechar={fecharCopiloto}
-        contexto={contexto}
-        computador={computador}
-        esquerda={menu}
-        largura={painel || larguraCopiloto}
-        onLargura={mudarLargura}
-        onRodando={setCopilotoRodando}
-      />
+      {temCopiloto && (
+        <Copiloto
+          aberto={copilotoAberto}
+          onFechar={fecharCopiloto}
+          contexto={contexto}
+          computador={computador}
+          esquerda={menu}
+          largura={painel || larguraCopiloto}
+          onLargura={mudarLargura}
+          onRodando={setCopilotoRodando}
+        />
+      )}
     </div>
   );
 }

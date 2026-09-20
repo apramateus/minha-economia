@@ -1,6 +1,7 @@
 // Importa um extrato/fatura para data/transacoes.json.
 // Uso: npm run importar -- <arquivo> [--conta <id da conta>] [--positivo-gasto] [--simular]
 import fs from 'node:fs/promises';
+import path from 'node:path';
 import { gravar, ler } from '../server/armazenamento.ts';
 import { linhaPorId, r2 } from '../src/lib/calculos.ts';
 import { decodificar, lerArquivo, montarPrevia } from '../src/lib/importar/index.ts';
@@ -16,6 +17,12 @@ const simular = args.includes('--simular');
 
 if (!arquivo) {
   console.error('Uso: npm run importar -- <arquivo> [--conta <id da conta>] [--positivo-gasto] [--simular]');
+  process.exit(1);
+}
+
+// .env.local tem as credenciais do banco: nem por engano ele vira "CSV" e aparece na tela ou no chat do copiloto
+if (/^\.env/.test(path.basename(arquivo))) {
+  console.error('Esse arquivo guarda as suas credenciais, não um extrato.');
   process.exit(1);
 }
 

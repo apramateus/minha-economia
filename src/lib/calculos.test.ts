@@ -95,6 +95,10 @@ describe('custo de verdade (base dos meses de liberdade)', () => {
   it('mês passado sem nada lançado: usa o plano', () => {
     expect(custoReal(config, [t('2026-07-05', 1800, 'aluguel')], '2026-09').fonte).toBe('plano');
   });
+  it('média de 3 meses (Custo para viver): só os meses que têm lançamentos entram na conta', () => {
+    const ts = [t('2026-07-05', 1000, 'aluguel'), t('2026-08-05', 1500, 'aluguel')]; // junho, sem nada
+    expect(custoReal(config, ts, '2026-09', 3)).toEqual({ valor: 1250 + 220, meses: ['2026-07', '2026-08'], fonte: 'real' });
+  });
 });
 
 describe('renda média', () => {

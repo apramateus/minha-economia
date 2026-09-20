@@ -25,10 +25,14 @@ export function useDados() {
   return c;
 }
 
-async function buscarTudo(): Promise<Dados> {
+type Versoes = Partial<Record<NomeArquivo, string>>;
+
+async function buscarTudo(): Promise<{ dados: Dados; versoes: Versoes }> {
   const r = await fetch('/api/dados/');
   if (!r.ok) throw new Error(`Erro ${r.status} ao carregar os dados`);
-  return r.json();
+  const corpo = await r.json();
+  // servidor ainda rodando o código antigo (sem reiniciar): funciona igual, só sem a conferência de versão
+  return 'dados' in corpo ? corpo : { dados: corpo as Dados, versoes: {} };
 }
 
 export function ProvedorDados({ children }: { children: ReactNode }) {
@@ -38,6 +42,13 @@ export function ProvedorDados({ children }: { children: ReactNode }) {
   const ref = useRef<Dados | null>(null);
   const filas = useRef<Partial<Record<NomeArquivo, Promise<void>>>>({});
   const gravando = useRef(0);
+  /** como cada arquivo está no disco, e em que versão: é sobre isso que cada mudança é gravada */
+  const disco = useRef<Dados | null>(null);
+  const versoes = useRef<Versoes>({});
+  /** mudanças suas que ainda não foram gravadas, por arquivo (refeitas se o arquivo tiver mudado no disco) */
+  const pendentes = useRef<Partial<Record<NomeArquivo, unknown[]>>>({});
+  const mudancas = useRef(0);
+  const relerDepois = useRef(false);
 
   const aplicar = (d: Dados) => {
     ref.current = d;
@@ -45,12 +56,30 @@ export function ProvedorDados({ children }: { children: ReactNode }) {
   };
 
   const recarregar = useCallback(async () => {
-    if (gravando.current > 0) return; // não sobrescreve algo que ainda está sendo salvo
-    try {
-      aplicar(await buscarTudo());
+    // uma leitura que saiu antes de uma mudança sua traria os dados velhos de volta: espera a gravação e lê de novo
+    for (let tentativa = 0; tentativa < 3; tentativa++) {
+      if (gravando.current > 0) {
+        relerDepois.current = true;
+        return;
+      }
+      const marca = mudancas.current;
+      let lido;
+      try {
+        lido = await buscarTudo();
+      } catch (e) {
+        if (!ref.current) setErro((e as Error).message);
+        return;
+      }
+      if (gravando.current > 0) {
+        relerDepois.current = true;
+        return;
+      }
+      if (mudancas.current !== marca) continue;
+      disco.current = lido.dados;
+      versoes.current = lido.versoes;
+      aplicar(lido.dados);
       setErro(null);
-    } catch (e) {
-      if (!ref.current) setErro((e as Error).message);
+      return;
     }
   }, []);
 
@@ -72,32 +101,62 @@ export function ProvedorDados({ children }: { children: ReactNode }) {
     setTimeout(() => setToast((t) => (t?.id === id ? null : t)), acao ? 7000 : 3200);
   }, []);
 
+  /**
+   * Grava uma mudança por cima do que está no disco. Se o arquivo mudou desde a última leitura (outro aparelho,
+   * a sincronização, o copiloto), refaz a mudança por cima do que chegou em vez de gravar por cima dele.
+   */
+  const gravar = useCallback(async <N extends NomeArquivo>(nome: N, fn: (atual: Dados[N]) => Dados[N]) => {
+    for (let tentativa = 0; ; tentativa++) {
+      const novo = fn(disco.current![nome]);
+      const r = await fetch(`/api/dados/${nome}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'If-Match': versoes.current[nome] ?? '' },
+        body: JSON.stringify(novo),
+      });
+      const corpo = await r.json().catch(() => ({}) as Record<string, unknown>);
+      if (r.ok) {
+        disco.current = { ...disco.current!, [nome]: novo };
+        versoes.current[nome] = corpo.versao as string;
+        return;
+      }
+      if (r.status !== 409 || tentativa >= 2) throw new Error((corpo.erro as string) ?? `Erro ${r.status}`);
+      disco.current = { ...disco.current!, [nome]: corpo.dados as Dados[N] };
+      versoes.current[nome] = corpo.versao as string;
+      // na tela: o que chegou, com as suas mudanças que ainda não foram gravadas por cima
+      const fila = (pendentes.current[nome] ?? []) as unknown as ((atual: Dados[N]) => Dados[N])[];
+      aplicar({ ...ref.current!, [nome]: fila.reduce((v, f) => f(v), corpo.dados as Dados[N]) });
+    }
+  }, []);
+
   const atualizar = useCallback(
     async <N extends NomeArquivo>(nome: N, fn: (atual: Dados[N]) => Dados[N]) => {
       const atual = ref.current;
       if (!atual) return;
-      const novo = fn(atual[nome]);
-      aplicar({ ...atual, [nome]: novo });
+      aplicar({ ...atual, [nome]: fn(atual[nome]) });
+      mudancas.current++;
       gravando.current++;
+      const fila = (pendentes.current[nome] ??= []) as unknown as ((a: Dados[N]) => Dados[N])[];
+      fila.push(fn);
       const anterior = filas.current[nome] ?? Promise.resolve();
-      const envio = anterior.then(async () => {
-        const r = await fetch(`/api/dados/${nome}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(novo),
-        });
-        if (!r.ok) throw new Error(`Erro ${r.status}`);
-      });
+      const envio = anterior.then(() => gravar(nome, fn));
       filas.current[nome] = envio.catch(() => undefined);
       try {
         await envio;
+        fila.shift();
       } catch (e) {
+        fila.shift();
+        // não foi para o disco: a tela volta para o que está gravado, com o que ainda está na fila por cima
+        aplicar({ ...ref.current!, [nome]: fila.reduce((v, f) => f(v), disco.current![nome]) });
         aviso(`Não consegui salvar (${(e as Error).message}). O servidor está rodando?`, 'erro');
       } finally {
         gravando.current--;
+        if (gravando.current === 0 && relerDepois.current) {
+          relerDepois.current = false;
+          void recarregar();
+        }
       }
     },
-    [aviso],
+    [aviso, gravar, recarregar],
   );
 
   if (erro)

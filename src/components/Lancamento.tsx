@@ -7,6 +7,7 @@ import { brl } from '../lib/formato';
 import type { Transacao } from '../lib/tipos';
 import { FONTES, useContasTransacao } from '../lib/contas';
 import { idDeCategoria, incluirRegra, parecidas, regraDoLancamento } from '../lib/categorias';
+import { reverter } from '../lib/mescla';
 import { sugerirPadrao } from '../lib/importar';
 import { SeletorCategoria } from './SeletorCategoria';
 import { Botao, Chip, Entrada, Folha } from './ui';
@@ -96,6 +97,7 @@ function FolhaDoLancamento({ aberta, onFechar, original }: { aberta: boolean; on
     const regra = regraDoLancamento(padrao, t);
     if (!regra) return;
     const regrasAntes = dados.regras;
+    const regrasDepois = incluirRegra(regrasAntes, regra);
     const outras = parecidas(dados.transacoes, regra, config, t.id);
     const trocar = new Map(outras.map((x) => [x.id, x]));
     const antes = new Map(dados.transacoes.filter((x) => trocar.has(x.id)).map((x) => [x.id, x]));
@@ -106,7 +108,7 @@ function FolhaDoLancamento({ aberta, onFechar, original }: { aberta: boolean; on
     aviso(`Vou lembrar${n ? ` · +${n} parecido${n > 1 ? 's' : ''}` : ''}`, 'ok', {
       rotulo: 'Desfazer',
       fazer: async () => {
-        await atualizar('regras', () => regrasAntes);
+        await atualizar('regras', reverter(regrasAntes, regrasDepois));
         if (antes.size) await atualizar('transacoes', (ts) => ts.map((x) => antes.get(x.id) ?? x));
         setLembrado(null);
         aviso('Desfeito');

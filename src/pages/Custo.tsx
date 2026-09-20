@@ -8,10 +8,10 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type MouseEvent as MouseEventReact } from 'react';
 import { Banknote, ChevronLeft, ChevronRight, Folder, Plus, Tag, TriangleAlert } from 'lucide-react';
 import { useDados } from '../lib/estado';
-import { isoMes, mesesAnteriores, nomeMesCurto } from '../lib/datas';
+import { isoMes, nomeMesCurto } from '../lib/datas';
 import { brl0, lerValor, valorParaCampo } from '../lib/formato';
 import { descendentes, linhasVisiveis, type LinhaVisivel } from '../lib/categorias';
-import { custoEssencial, custoEssencialReal, mediaRealPorLinha, r2, totalNatureza } from '../lib/calculos';
+import { custoEssencial, custoReal, mediaRealPorLinha, r2, totalNatureza } from '../lib/calculos';
 import { NAO_PLANEJADO } from '../lib/analise';
 import { ramoDe } from '../lib/fluxo';
 import type { Config, LinhaOrcamento, Natureza } from '../lib/tipos';
@@ -104,8 +104,14 @@ export function Custo({ navegar, de }: { navegar: (r: string) => void; de?: stri
   const { config, transacoes } = dados;
   // o real é o mês passado (é ele que conta nos meses de liberdade); 2 e 3 meses ficam para comparar
   const [n, setN] = useState<'1' | '2' | '3'>('1');
-  const meses = useMemo(() => mesesAnteriores(isoMes(), Number(n)), [n]);
-  const periodo = meses.length === 1 ? nomeMesCurto(meses[0]) : `${nomeMesCurto(meses[0])} a ${nomeMesCurto(meses.at(-1)!)}`;
+  // só entram na média os meses que têm lançamentos: um mês sem dados baixaria o real à toa
+  const real = useMemo(() => custoReal(config, transacoes, isoMes(), Number(n)), [config, transacoes, n]);
+  const meses = real.meses;
+  const periodo = !meses.length
+    ? 'sem dados ainda'
+    : meses.length === 1
+      ? nomeMesCurto(meses[0])
+      : `${nomeMesCurto(meses[0])} a ${nomeMesCurto(meses.at(-1)!)}`;
 
   return (
     <div className="space-y-3">
@@ -129,7 +135,7 @@ export function Custo({ navegar, de }: { navegar: (r: string) => void; de?: stri
                 pela média do plano, para um mês de gasto grande não distorcer.
               </Ajuda>
             </div>
-            <div className="tabular text-xl font-semibold">{brl0(custoEssencialReal(config, transacoes, meses))}</div>
+            <div className="tabular text-xl font-semibold">{real.fonte === 'real' ? brl0(real.valor) : '—'}</div>
             <div className="text-xs text-muted">{periodo}</div>
           </div>
         </div>
@@ -168,12 +174,6 @@ function Arvore({ meses, navegar }: { meses: string[]; navegar: (r: string) => v
   const [juntando, setJuntando] = useState<string | null>(null);
   const modoJuntar = useJuntar(juntando, setJuntando);
   const linhasRef = useRef(new Map<string, HTMLDivElement>());
-  // a recém-criada troca de id ao ganhar nome: depois de salvar, é aqui que ela é achada de novo
-  const orcamento = useRef(config.orcamento);
-  useEffect(() => {
-    orcamento.current = config.orcamento;
-  });
-
   // pasta acabou de ser movida para dentro de outra: rola até ela
   useEffect(() => {
     if (movida) setTimeout(() => linhasRef.current.get(movida)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 80);
@@ -245,13 +245,10 @@ function Arvore({ meses, navegar }: { meses: string[]; navegar: (r: string) => v
 
   const nomeFeito = async (id: string, nome: string | null, enter: boolean, recemCriada: boolean) => {
     setEdicao(null);
-    const antes = new Set(config.orcamento.map((l) => l.id));
     const atual = config.orcamento.find((l) => l.id === id)?.nome;
     if (nome?.trim() && nome.trim() !== atual) await ops.editar(id, { nome: nome.trim() });
-    if (!recemCriada || !enter) return;
-    const agora = orcamento.current;
-    const achada = agora.some((l) => l.id === id) ? id : agora.find((l) => !antes.has(l.id))?.id;
-    if (achada) setEdicao({ id: achada, campo: 'plano' });
+    // acabou de criar e apertou Enter: já abre o plano dela
+    if (recemCriada && enter) setEdicao({ id, campo: 'plano' });
   };
 
   const planoFeito = (id: string, texto: string | null) => {

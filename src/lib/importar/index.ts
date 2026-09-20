@@ -97,8 +97,8 @@ export function classificar(l: LinhaBruta, conta: string, regras: Regra[], confi
   if (regra?.tipo === 'transferencia' || (!regra && l.categoriaBanco && CATEGORIAS_TRANSFERENCIA.includes(l.categoriaBanco))) {
     return { tipo: 'transferencia', linha: null, valor: abs };
   }
-  if (l.valor < 0 || regra?.tipo === 'despesa') return { tipo: 'despesa', linha: linhaValida, valor: abs };
-  // entrou dinheiro
+  if (l.valor < 0) return { tipo: 'despesa', linha: linhaValida, valor: abs };
+  // entrou dinheiro (mesmo com uma regra de gasto no nome: gasto é o que sai)
   if (contaEhCartao(conta)) return { tipo: 'despesa', linha: linhaValida, valor: -abs }; // estorno
   return { tipo: 'receita', linha: null, fonte: regra?.fonte ?? 'outros', valor: abs };
 }
@@ -147,9 +147,9 @@ export function montarPrevia(
   const porHash = new Map(existentes.filter((t) => t.hash).map((t) => [t.hash!, t]));
   const hashes = gerarHashes(linhas, conta);
   const familia = hashes.length ? familiaHash(hashes[0]) : 'csv';
-  // candidatas a "já está lá": lançamentos à mão e importações de outro formato na mesma conta
+  // candidatas a "já está lá": na mesma conta, o que foi lançado à mão e o que veio de outro formato
   const candidatas = existentes.filter(
-    (t) => t.origem === 'manual' || (t.hash && t.conta === conta && familiaHash(t.hash) !== familia),
+    (t) => t.conta === conta && (t.origem === 'manual' || (t.hash && familiaHash(t.hash) !== familia)),
   );
   const usadas = new Set<string>();
   return linhas.map((l, i) => {
@@ -202,6 +202,13 @@ export function reclassificar(t: Transacao, regras: Regra[], config: Config): Tr
     return { ...resto, tipo: 'transferencia', linha: null };
   }
   if (!regra) return t;
+  // a regra mudou e isso não é mais transferência (ex.: o DAS que passou a ser gasto em impostos)
+  if (t.tipo === 'transferencia') {
+    if (regra.linha && config.orcamento.some((x) => x.id === regra.linha)) return { ...t, tipo: 'despesa', linha: regra.linha };
+    if (regra.fonte) return { ...t, tipo: 'receita', linha: null, fonte: regra.fonte };
+    if (regra.tipo === 'despesa') return { ...t, tipo: 'despesa', linha: null };
+    return t;
+  }
   if (t.tipo === 'receita' && regra.fonte && t.fonte !== regra.fonte) return { ...t, fonte: regra.fonte };
   if (t.tipo === 'despesa' && regra.linha && regra.linha !== t.linha && config.orcamento.some((x) => x.id === regra.linha)) {
     return { ...t, linha: regra.linha };

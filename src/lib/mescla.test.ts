@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { igual, mesclar3, resumoDaMudanca } from './mescla';
+import { igual, mesclar3, resumoDaMudanca, reverter, tirarRepetidos } from './mescla';
 
 const cat = (id: string, nome: string, valor: number) => ({ id, nome, valor });
 
@@ -60,6 +60,33 @@ describe('mescla de três vias (proposta do copiloto × o que o usuário mudou e
   it('igual não liga para a ordem das chaves', () => {
     expect(igual({ a: 1, b: [1, { c: 2, d: 3 }] }, { b: [1, { d: 3, c: 2 }], a: 1 })).toBe(true);
     expect(igual({ a: 1, x: undefined }, { a: 1 })).toBe(true);
+  });
+});
+
+describe('desfazer sem atropelar o que veio depois', () => {
+  const t = (id: string, linha: string | null, hash?: string) => ({ id, linha, ...(hash ? { hash } : {}) });
+
+  it('volta só o que a operação mudou; o que chegou depois fica', () => {
+    const antes = [t('1', 'mercado'), t('2', 'luz')];
+    const depois = [t('1', 'comida'), t('2', 'comida')]; // juntou mercado e luz em comida
+    const agora = [...depois, t('3', 'gasolina')]; // a sincronização trouxe um lançamento novo
+    expect(reverter(antes, depois)(agora)).toEqual([t('1', 'mercado'), t('2', 'luz'), t('3', 'gasolina')]);
+  });
+
+  it('o que você mudou depois no mesmo lançamento continua valendo', () => {
+    const antes = [t('1', 'mercado')];
+    const depois = [t('1', 'comida')];
+    expect(reverter(antes, depois)([t('1', 'feira')])).toEqual([t('1', 'feira')]);
+  });
+});
+
+describe('mesmo lançamento do banco por dois caminhos', () => {
+  const t = (id: string, hash?: string) => ({ id, ...(hash ? { hash } : {}) });
+
+  it('tira a cópia nova e fica com a que já estava gravada', () => {
+    const gravados = [t('a', 'pluggy:1'), t('b', 'pluggy:2')];
+    const lista = [...gravados, t('c', 'pluggy:2'), t('d', 'pluggy:3'), t('e')];
+    expect(tirarRepetidos(lista, gravados)).toEqual([t('a', 'pluggy:1'), t('b', 'pluggy:2'), t('d', 'pluggy:3'), t('e')]);
   });
 });
 

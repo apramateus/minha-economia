@@ -124,6 +124,24 @@ function mesclarListas(base: unknown[], atual: unknown[], proposta: unknown[], c
   return { valor: ordem.map((k) => valores.get(k)), conflitos };
 }
 
+/**
+ * Desfaz só o que mudou de `antes` para `depois`, mantendo o que tiver mudado no arquivo depois disso
+ * (uma sincronização, o outro aparelho). Onde os dois mexeram no mesmo lugar, fica o que está lá agora.
+ */
+export function reverter<T>(antes: T, depois: T): (agora: T) => T {
+  return (agora) => mesclar3(depois, agora, antes).valor as T;
+}
+
+/**
+ * Dois caminhos trouxeram o mesmo lançamento do banco (mesmo hash, ids diferentes — ex.: a sincronização do app e a
+ * que o copiloto rodou na cópia dele): fica o que já estava gravado, para o gasto não contar em dobro.
+ */
+export function tirarRepetidos<T extends { id: string; hash?: string }>(lista: T[], jaGravados: T[]): T[] {
+  const ids = new Set(jaGravados.map((t) => t.id));
+  const hashes = new Set(jaGravados.flatMap((t) => (t.hash ? [t.hash] : [])));
+  return lista.filter((t) => ids.has(t.id) || !t.hash || !hashes.has(t.hash));
+}
+
 // ---------- Resumo da proposta (o que o cartão do copiloto mostra) ----------
 
 const LISTAS: Record<string, { nome: string; feminino?: boolean }> = {

@@ -12,3 +12,6 @@ importar/*
 # instruções pessoais para o Claude (perfil, contas, decisões) — cada pessoa tem o seu
 CLAUDE.local.md
 .equipe/
+
+# projeto na Vercel (ids locais)
+.vercel/

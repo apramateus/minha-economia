@@ -3,13 +3,14 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { PluggyClient } from 'pluggy-sdk';
-import { RAIZ, gravar, lerTudo } from './armazenamento.ts';
+import { RAIZ, emOrdem, gravar, lerTudo } from './armazenamento.ts';
 import { isoDia, isoMes, somarMeses } from '../src/lib/datas.ts';
 import { linhaPorId, r2 } from '../src/lib/calculos.ts';
 import { contaEhCartao, montarPrevia } from '../src/lib/importar/index.ts';
 import { atualizacaoDoBanco, contaDoApp, linhaDaPluggy, type ContaPluggy, type TransacaoPluggy } from '../src/lib/importar/pluggy.ts';
 import { semExemplo } from '../src/lib/exemplo.ts';
-import type { Transacao } from '../src/lib/tipos.ts';
+import { mesclar3, tirarRepetidos } from '../src/lib/mescla.ts';
+import type { Config, Patrimonio, Transacao } from '../src/lib/tipos.ts';
 
 interface Credenciais {
   clientId: string;
@@ -229,10 +230,20 @@ export async function sincronizarCom(
   }
 
   if (!simular) {
-    patrimonio = { ...patrimonio, sincronizadoEm: new Date().toISOString() };
-    await gravar('transacoes', transacoes.sort((a, b) => a.data.localeCompare(b.data)));
-    await gravar('patrimonio', patrimonio);
-    await gravar('config', { ...config, pluggy: { contas: mapa } });
+    const doBanco = {
+      transacoes,
+      patrimonio: { ...patrimonio, sincronizadoEm: new Date().toISOString() },
+      config: { ...config, pluggy: { contas: mapa } },
+    };
+    // o banco demora a responder: o que você mudou no app nesse meio-tempo continua valendo (a mescla de três vias
+    // parte de como os arquivos estavam quando a sincronização começou)
+    await emOrdem(async () => {
+      const agora = await lerTudo();
+      const juntas = mesclar3(dados.transacoes, agora.transacoes, doBanco.transacoes).valor as Transacao[];
+      await gravar('transacoes', tirarRepetidos(juntas, agora.transacoes).sort((a, b) => a.data.localeCompare(b.data)));
+      await gravar('patrimonio', mesclar3(dados.patrimonio, agora.patrimonio, doBanco.patrimonio).valor as Patrimonio);
+      await gravar('config', mesclar3(dados.config, agora.config, doBanco.config).valor as Config);
+    });
   }
   return relatorio;
 }

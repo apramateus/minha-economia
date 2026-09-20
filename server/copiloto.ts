@@ -1,14 +1,15 @@
 // Copiloto: chama o Claude Code em modo headless (usa a assinatura do usuário, sem chave de API)
-// dentro da pasta do projeto. Permissões: ler tudo, alterar SÓ a cópia de trabalho dos dados, rodar só os scripts do app.
+// dentro da pasta do projeto. Permissões: ler só a pasta do app (menos .env*), alterar SÓ a cópia de trabalho dos dados,
+// rodar só os scripts do app.
 // Ele nunca mexe em data/ direto: trabalha numa cópia, e o que mudar vira uma PROPOSTA que o usuário aprova (OK) ou
 // descarta. Aplicar mescla com o que o usuário mudou enquanto isso (src/lib/mescla.ts) e tira uma foto para o "Desfazer".
 import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { ARQUIVOS, type Dados, type NomeArquivo } from '../src/lib/tipos.ts';
-import { igual, mesclar3, resumoDaMudanca } from '../src/lib/mescla.ts';
-import { gravar, PASTA_DADOS, RAIZ } from './armazenamento.ts';
+import { ARQUIVOS, type Dados, type NomeArquivo, type Transacao } from '../src/lib/tipos.ts';
+import { igual, mesclar3, resumoDaMudanca, tirarRepetidos } from '../src/lib/mescla.ts';
+import { emOrdem, gravar, lerTextos, PASTA_DADOS, RAIZ } from './armazenamento.ts';
 
 const PASTA_FOTOS = path.join(PASTA_DADOS, 'backups', 'copiloto');
 const MAX_FOTOS = 30;
@@ -54,7 +55,9 @@ function carimbo() {
   return new Date().toISOString().replace(/[:.]/g, '-');
 }
 
-async function lerDados(pasta = PASTA_DADOS): Promise<Record<string, string>> {
+/** Sem pasta = os dados de verdade (que na nuvem não estão em arquivo); com pasta = a cópia de trabalho da proposta. */
+async function lerDados(pasta?: string): Promise<Record<string, string>> {
+  if (!pasta) return lerTextos();
   const r: Record<string, string> = {};
   for (const n of ARQUIVOS) {
     try {
@@ -96,11 +99,16 @@ async function podarPropostas() {
   for (const id of ids.slice(0, Math.max(0, ids.length - MAX_PROPOSTAS))) await apagarProposta(id);
 }
 
-async function tirarFoto(conteudo: Record<string, string>): Promise<string> {
+/**
+ * Foto para o Desfazer: `<n>.json` = como estava antes e `<n>.depois.json` = como ficou. Com os dois, desfazer
+ * volta só o que a proposta mudou, sem levar junto o que veio depois (uma sincronização, o outro aparelho).
+ */
+async function tirarFoto(conteudo: Record<string, string>, depois: Record<string, string> = {}): Promise<string> {
   const id = carimbo();
   const pasta = path.join(PASTA_FOTOS, id);
   await fs.mkdir(pasta, { recursive: true });
   for (const [n, c] of Object.entries(conteudo)) if (c) await fs.writeFile(path.join(pasta, `${n}.json`), c, 'utf8');
+  for (const [n, c] of Object.entries(depois)) if (c) await fs.writeFile(path.join(pasta, `${n}.depois.json`), c, 'utf8');
   const todas = (await fs.readdir(PASTA_FOTOS)).sort();
   for (const velha of todas.slice(0, Math.max(0, todas.length - MAX_FOTOS))) {
     await fs.rm(path.join(PASTA_FOTOS, velha), { recursive: true, force: true });
@@ -184,6 +192,9 @@ async function conversar(req: IncomingMessage, res: ServerResponse) {
     '--include-partial-messages',
     '--permission-mode',
     'dontAsk',
+    // ele só lê o que está na pasta do app (nada de ~/.ssh, nem por Grep/Glob), em qualquer situação
+    '--settings',
+    JSON.stringify({ permissions: { blockReadsOutsideWorkingDirectories: true } }),
     '--append-system-prompt',
     instrucoes(relativa),
     '--allowedTools',
@@ -299,24 +310,36 @@ async function aplicar(req: IncomingMessage, res: ServerResponse) {
     res.statusCode = 404;
     return res.end(JSON.stringify({ erro: 'essa proposta não existe mais' }));
   }
-  const [daBase, daProposta, atual] = await Promise.all([lerDados(base), lerDados(trabalho), lerDados()]);
-  const novos: { nome: NomeArquivo; valor: unknown }[] = [];
-  const conflitos: string[] = [];
-  for (const n of ARQUIVOS) {
-    if (mesmoConteudo(daBase[n], daProposta[n])) continue;
-    const m = mesclar3(lerJson(daBase[n]), lerJson(atual[n]), lerJson(daProposta[n]), NOMES_ARQUIVO[n]);
-    conflitos.push(...m.conflitos);
-    novos.push({ nome: n, valor: m.valor });
-  }
-  if (conflitos.length) {
+  const [daBase, daProposta] = await Promise.all([lerDados(base), lerDados(trabalho)]);
+  const saida = await emOrdem(async () => {
+    const atual = await lerDados();
+    const novos: { nome: NomeArquivo; valor: unknown }[] = [];
+    const conflitos: string[] = [];
+    for (const n of ARQUIVOS) {
+      if (mesmoConteudo(daBase[n], daProposta[n])) continue;
+      const m = mesclar3(lerJson(daBase[n]), lerJson(atual[n]), lerJson(daProposta[n]), NOMES_ARQUIVO[n]);
+      conflitos.push(...m.conflitos);
+      // os dois podem ter sincronizado (ele na cópia dele, você no app): o mesmo lançamento não entra duas vezes
+      const valor =
+        n === 'transacoes' ? tirarRepetidos(m.valor as Transacao[], lerJson(atual[n]) as Transacao[]) : m.valor;
+      novos.push({ nome: n, valor });
+    }
+    if (conflitos.length) return { conflitos };
+    const alterados = novos.map((x) => x.nome);
+    // a foto sai antes de gravar: se algo der errado no meio, o Desfazer já existe
+    const foto = await tirarFoto(
+      Object.fromEntries(alterados.map((n) => [n, atual[n]])),
+      Object.fromEntries(novos.map((x) => [x.nome, JSON.stringify(x.valor, null, 2) + '\n'])),
+    );
+    for (const x of novos) await gravar(x.nome, x.valor as Dados[typeof x.nome]);
+    return { foto, alterados };
+  });
+  if ('conflitos' in saida) {
     res.statusCode = 409;
-    return res.end(JSON.stringify({ erro: 'mudou enquanto isso', conflitos }));
+    return res.end(JSON.stringify({ erro: 'mudou enquanto isso', conflitos: saida.conflitos }));
   }
-  const alterados = novos.map((x) => x.nome);
-  const foto = await tirarFoto(Object.fromEntries(alterados.map((n) => [n, atual[n]])));
-  for (const x of novos) await gravar(x.nome, x.valor as Dados[typeof x.nome]);
   await apagarProposta(proposta);
-  res.end(JSON.stringify({ ok: true, foto, alterados }));
+  res.end(JSON.stringify({ ok: true, ...saida }));
 }
 
 async function descartar(req: IncomingMessage, res: ServerResponse) {
@@ -348,14 +371,38 @@ async function desfazer(req: IncomingMessage, res: ServerResponse) {
     res.statusCode = 404;
     return res.end(JSON.stringify({ erro: 'essa versão não existe mais' }));
   }
-  await tirarFoto(await lerDados()); // dá para desfazer o desfazer
-  // fotos antigas guardavam todos os arquivos: restaura só os que o cartão "Alterei" lista
+  // o cartão "Alterei" diz quais arquivos a proposta mexeu
   const so = Array.isArray(pedidos) ? new Set(pedidos.map(String)) : null;
-  for (const a of arquivos) {
-    const n = a.replace(/\.json$/, '');
-    if (ARQUIVOS.includes(n as NomeArquivo) && (!so || so.has(n))) {
-      await fs.copyFile(path.join(pasta, a), path.join(PASTA_DADOS, a));
+  const nomes = ARQUIVOS.filter((n) => arquivos.includes(`${n}.json`) && (!so || so.has(n)));
+  const velhas = nomes.filter((n) => !arquivos.includes(`${n}.depois.json`));
+  if (velhas.length) {
+    // foto de antes desta versão do app: sem o "depois" não dá para saber o que foi essa mudança e o que veio depois
+    res.statusCode = 409;
+    return res.end(JSON.stringify({ erro: 'essa mudança é antiga demais para desfazer daqui' }));
+  }
+  const saida = await emOrdem(async () => {
+    const agora = await lerDados();
+    const novos: { nome: NomeArquivo; valor: unknown }[] = [];
+    const conflitos: string[] = [];
+    for (const n of nomes) {
+      const antes = await fs.readFile(path.join(pasta, `${n}.json`), 'utf8');
+      const depois = await fs.readFile(path.join(pasta, `${n}.depois.json`), 'utf8');
+      // volta só o que a proposta mudou: o que chegou depois (sincronização, outro aparelho) continua
+      const m = mesclar3(lerJson(depois), lerJson(agora[n]), lerJson(antes), NOMES_ARQUIVO[n]);
+      conflitos.push(...m.conflitos);
+      novos.push({ nome: n, valor: m.valor });
     }
+    if (conflitos.length) return { conflitos };
+    await tirarFoto(
+      Object.fromEntries(nomes.map((n) => [n, agora[n]])),
+      Object.fromEntries(novos.map((x) => [x.nome, JSON.stringify(x.valor, null, 2) + '\n'])),
+    ); // dá para desfazer o desfazer
+    for (const x of novos) await gravar(x.nome, x.valor as Dados[typeof x.nome]);
+    return { ok: true as const };
+  });
+  if ('conflitos' in saida) {
+    res.statusCode = 409;
+    return res.end(JSON.stringify({ erro: 'você mudou isso depois; não desfiz nada', conflitos: saida.conflitos }));
   }
   res.end(JSON.stringify({ ok: true }));
 }

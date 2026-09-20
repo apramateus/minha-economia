@@ -1,0 +1,11 @@
+# O que nunca sobe para a Vercel (os dados moram na store privada, não no deploy).
+# Caminhos presos à raiz: "importar/" solto também apagaria src/lib/importar/.
+/data/
+/importar/
+/.env
+/.env.*
+/CLAUDE.local.md
+/.equipe/
+/dist/
+/node_modules/
+/.git/
