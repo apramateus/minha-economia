@@ -57,4 +57,8 @@ for (const ambiente of AMBIENTES) {
 console.log('\nPronto. A senha do app no ar é:\n');
 console.log(`    ${senha}\n`);
 console.log('Guarde no seu gerenciador de senhas. Ela não fica salva em lugar nenhum aqui.');
-console.log('Agora publique para valer: npx vercel --prod\n');
+
+// a Vercel leva as variáveis para dentro do deploy: sem publicar de novo, o site continua com a senha antiga
+console.log('Publicando de novo (a senha nova só vale no deploy seguinte)…');
+const publicou = await rodar(['--prod', '--yes'], '');
+console.log(publicou === 0 ? 'No ar com a senha nova.\n' : 'Não consegui publicar. Rode: npx vercel --prod\n');
