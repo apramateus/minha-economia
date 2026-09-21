@@ -88,7 +88,12 @@ no `seed/`, nos testes ou neste arquivo. Numa instalação que só usa o app, n�
 - Credenciais em `.env.local` (`PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`, `PLUGGY_ITEM_IDS`). **Nunca** leia em voz alta, copie para o chat ou commite esse arquivo.
 - Item novo (ex.: conta PJ) vai primeiro em `PLUGGY_ITEM_ID_NOVO`: só entra em `npm run sincronizar -- --novo` (sempre simulação;
   mostra final da conta e item de cada conta — se a PF aparecer de novo, não pode entrar duplicada). Conferido → mover para `PLUGGY_ITEM_IDS`.
-- `npm run sincronizar [-- --simular]` (ou botão Atualizar no app; o app também sincroniza sozinho ao abrir se passou de 3h).
+- `npm run sincronizar [-- --simular]` (ou botão Atualizar no app). O Meu Pluggy busca cada conexão no banco **1× por dia, no
+  horário dele** (e não aceita atualização manual): buscar antes não traz nada. A sincronização grava em `patrimonio.conexoes`
+  quando o banco mandou os dados (`lastUpdatedAt`) e quando a Pluggy busca de novo (`nextAutoSyncAt`) de cada conexão; o app busca
+  sozinho logo depois desse horário — ao abrir, ao voltar para ele e com ele aberto (`src/lib/sincronizacao.ts`; atrasou, tenta
+  a cada 15 min; sem os horários, a regra antiga de 3h). A barra do Extrato mostra "<conta> · dados de <quando>" (a hora do banco,
+  não a do app; ponto amarelo = a Pluggy atrasou) e o (?) diz os próximos horários.
 - `server/pluggy.ts` orquestra; `src/lib/importar/pluggy.ts` converte (cartão: Pluggy manda compra positiva → invertemos).
   Hash `pluggy:<id>` (o id se mantém de pendente → lançado; mudanças de valor/data são atualizadas sem mexer na categoria).
 - 1ª sincronização puxa desde o dia 1º de 3 meses atrás; depois, desde a última transação − 10 dias.

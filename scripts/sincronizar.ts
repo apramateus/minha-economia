@@ -20,6 +20,7 @@ try {
     console.log(
       `Conexão ${i.id.slice(0, 8)}… status ${i.status}` +
         (i.ultimaAtualizacaoBanco ? ` · banco atualizado em ${new Date(i.ultimaAtualizacaoBanco).toLocaleString('pt-BR')}` : '') +
+        (i.proximaAtualizacaoBanco ? ` · próxima em ${new Date(i.proximaAtualizacaoBanco).toLocaleString('pt-BR')}` : '') +
         (i.consentimentoExpiraEm ? ` · consentimento até ${new Date(i.consentimentoExpiraEm).toLocaleDateString('pt-BR')}` : ''),
     );
   }

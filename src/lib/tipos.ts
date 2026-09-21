@@ -140,6 +140,18 @@ export interface Patrimonio {
   snapshots: Snapshot[];
   /** última sincronização com o banco (ISO) */
   sincronizadoEm?: string;
+  /** cada conexão com o banco (item do Meu Pluggy), como estava na última sincronização */
+  conexoes?: ConexaoBanco[];
+}
+
+/** O Meu Pluggy busca cada conexão no banco 1× por dia, no horário dele: quando buscou e quando busca de novo. */
+export interface ConexaoBanco {
+  /** a conta corrente da conexão (ex.: "C6 PJ") */
+  nome: string;
+  /** quando o banco mandou os dados pela última vez (ISO) */
+  atualizadoEm: string | null;
+  /** quando a Pluggy vai buscar de novo (ISO) */
+  proximaEm: string | null;
 }
 
 export interface Regra {

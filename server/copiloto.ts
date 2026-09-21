@@ -5,6 +5,7 @@
 // descarta. Aplicar mescla com o que o usuário mudou enquanto isso (src/lib/mescla.ts) e tira uma foto para o "Desfazer".
 import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { ARQUIVOS, type Dados, type NomeArquivo, type Transacao } from '../src/lib/tipos.ts';
@@ -17,6 +18,8 @@ const MAX_FOTOS = 30;
 const PASTA_PROPOSTAS = path.join(PASTA_DADOS, 'backups', 'propostas');
 const MAX_PROPOSTAS = 20;
 const TEMPO_MAXIMO_MS = 6 * 60_000;
+/** o plano financeiro que o CLAUDE.local.md cita mora aqui, fora da pasta do app */
+const PASTA_PLANOS = path.join(os.homedir(), '.claude', 'plans');
 
 const FERRAMENTAS_PERMITIDAS = [
   'Read',
@@ -195,6 +198,8 @@ async function conversar(req: IncomingMessage, res: ServerResponse) {
     // ele só lê o que está na pasta do app (nada de ~/.ssh, nem por Grep/Glob), em qualquer situação
     '--settings',
     JSON.stringify({ permissions: { blockReadsOutsideWorkingDirectories: true } }),
+    // mais a pasta dos planos, se existir: é onde mora o plano financeiro que o CLAUDE.local.md cita
+    ...((await fs.stat(PASTA_PLANOS).catch(() => null)) ? ['--add-dir', PASTA_PLANOS] : []),
     '--append-system-prompt',
     instrucoes(relativa),
     '--allowedTools',

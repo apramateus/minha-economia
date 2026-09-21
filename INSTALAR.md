@@ -155,6 +155,9 @@ Se ela não quiser conectar banco: `npm run limpar-exemplo` e importar o extrato
 Com o app aberto, o Terminal do app mostra um QR. iPhone na mesma Wi-Fi → câmera no QR → abre no Safari → **Compartilhar →
 Adicionar à Tela de Início**. Funciona enquanto o Mac está ligado com o app aberto. No app, Início → **Celular** mostra o QR de novo.
 
+Enquanto o app está aberto assim, **quem estiver na mesma Wi-Fi consegue abrir o app** (não tem senha): tudo bem na rede de casa,
+mas em Wi-Fi de café ou coworking use `npm run dev`, que só abre no próprio Mac.
+
 ## 8. Atualizar (quando ela disser "atualize o app")
 
 Você mesmo fecha o app, atualiza e abre de novo:

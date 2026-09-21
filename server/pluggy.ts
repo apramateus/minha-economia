@@ -10,7 +10,7 @@ import { contaEhCartao, montarPrevia } from '../src/lib/importar/index.ts';
 import { atualizacaoDoBanco, contaDoApp, linhaDaPluggy, type ContaPluggy, type TransacaoPluggy } from '../src/lib/importar/pluggy.ts';
 import { semExemplo } from '../src/lib/exemplo.ts';
 import { mesclar3, tirarRepetidos } from '../src/lib/mescla.ts';
-import type { Config, Patrimonio, Transacao } from '../src/lib/tipos.ts';
+import type { Config, ConexaoBanco, Patrimonio, Transacao } from '../src/lib/tipos.ts';
 
 interface Credenciais {
   clientId: string;
@@ -72,7 +72,7 @@ export interface RelatorioConta {
 
 export interface RelatorioSincronizacao {
   simulado: boolean;
-  itens: { id: string; status: string; ultimaAtualizacaoBanco: string | null; consentimentoExpiraEm: string | null }[];
+  itens: { id: string; status: string; ultimaAtualizacaoBanco: string | null; proximaAtualizacaoBanco: string | null; consentimentoExpiraEm: string | null }[];
   contas: RelatorioConta[];
   novas: number;
   semCategoria: { data: string; descricao: string; valor: number }[];
@@ -120,6 +120,7 @@ export async function sincronizarCom(
   let patrimonio = structuredClone(reais.patrimonio);
   const relatorio: RelatorioSincronizacao = { simulado: simular, itens: [], contas: [], novas: 0, semCategoria: [], investimentos: null, avisos: [] };
   const primeiraVez = `${somarMeses(isoMes(), -3)}-01`; // 3 meses de histórico + o mês atual
+  const conexoes: ConexaoBanco[] = [];
 
   for (const itemId of itemIds) {
     const item = await cliente.fetchItem(itemId);
@@ -128,6 +129,7 @@ export async function sincronizarCom(
       id: itemId,
       status: item.status,
       ultimaAtualizacaoBanco: item.lastUpdatedAt ? new Date(item.lastUpdatedAt).toISOString() : null,
+      proximaAtualizacaoBanco: item.nextAutoSyncAt ? new Date(item.nextAutoSyncAt).toISOString() : null,
       consentimentoExpiraEm: expira ? expira.toISOString() : null,
     });
     if (['LOGIN_ERROR', 'OUTDATED', 'WAITING_USER_ACTION', 'WAITING_USER_INPUT'].includes(item.status)) {
@@ -209,6 +211,15 @@ export async function sincronizarCom(
       }
     }
 
+    // quando o Meu Pluggy buscou esta conexão no banco e quando busca de novo (1× por dia, no horário dele):
+    // é o que o app usa para buscar logo depois e para mostrar de quando são os dados
+    const corrente = contasDoItem.find((c) => !contaEhCartao(c));
+    conexoes.push({
+      nome: patrimonio.contas.find((c) => c.id === corrente)?.nome ?? corrente ?? `Conexão ${itemId.slice(0, 8)}`,
+      atualizadoEm: item.lastUpdatedAt ? new Date(item.lastUpdatedAt).toISOString() : null,
+      proximaEm: item.nextAutoSyncAt ? new Date(item.nextAutoSyncAt).toISOString() : null,
+    });
+
     // investimentos (CDB de garantia do cartão, caixinhas…): soma dos ativos
     try {
       const { results: inv } = await cliente.fetchInvestments(itemId);
@@ -232,7 +243,7 @@ export async function sincronizarCom(
   if (!simular) {
     const doBanco = {
       transacoes,
-      patrimonio: { ...patrimonio, sincronizadoEm: new Date().toISOString() },
+      patrimonio: { ...patrimonio, sincronizadoEm: new Date().toISOString(), conexoes },
       config: { ...config, pluggy: { contas: mapa } },
     };
     // o banco demora a responder: o que você mudou no app nesse meio-tempo continua valendo (a mescla de três vias
