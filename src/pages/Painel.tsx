@@ -1,5 +1,5 @@
-// Início, na ordem que o usuário pediu: patrimônio, meses de liberdade, metas (3 primeiras), mês até agora, a categorizar.
-// No computador, em duas colunas para caber na tela sem rolar.
+// Início, na ordem que o usuário pediu: de quando são os dados do banco, patrimônio, meses de liberdade, metas (3 primeiras),
+// mês até agora, a categorizar. No computador, em duas colunas para caber na tela sem rolar.
 import { Check, ChevronRight, Inbox, Smartphone } from 'lucide-react';
 import { useDados } from '../lib/estado';
 import { isoMes, nomeMesCurto } from '../lib/datas';
@@ -8,6 +8,7 @@ import { aportePlanejado, cascataMetas, custoReal, resumoMes, resumoPatrimonio, 
 import { aCategorizar } from '../lib/analise';
 import { temExemplo } from '../lib/exemplo';
 import { Ajuda, Card, Medidor, TituloCard } from '../components/ui';
+import { BarraBanco } from '../components/BarraBanco';
 
 const METAS_NO_INICIO = 3;
 /** marcos no caminho até a meta de patrimônio (só aparece para quem definiu `config.metaPatrimonio`) */
@@ -55,6 +56,9 @@ export function Painel({ navegar }: { navegar: (rota: string) => void }) {
           <Smartphone size={14} /> Celular
         </button>
       </header>
+
+      {/* de quando são os dados do banco (pedido do usuário: aqui, e não no Extrato) */}
+      <BarraBanco />
 
       <div className="grid gap-3 lg:grid-cols-2">
         <div className="space-y-3">

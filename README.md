@@ -37,8 +37,8 @@ npm run sincronizar -- --simular   # mostra o que viria, sem gravar
 npm run sincronizar                # grava
 ```
 
-Depois disso o app sincroniza sozinho ao abrir (se a última foi há mais de 3h) e tem o botão **Atualizar**. O Meu Pluggy
-atualiza uma vez por dia. Detalhes e armadilhas: [INSTALAR.md](INSTALAR.md), passo 5.
+Depois disso o app sincroniza sozinho: o Meu Pluggy busca cada conta no banco uma vez por dia, e o app busca logo
+depois. O topo do Início mostra de quando são os dados de cada conta. Detalhes e armadilhas: [INSTALAR.md](INSTALAR.md), passo 5.
 
 ## Importar extrato ou fatura (sem conectar o banco)
 

@@ -70,7 +70,7 @@ no `seed/`, nos testes ou neste arquivo. Numa instalação que só usa o app, n�
   Custo para viver no celular: colunas sem "R$". Detalhe da categoria abre numa `Folha`. Alvos de toque de ~40 px.
   `index.css` (`pointer: coarse`): campos com 16 px (o iPhone não dá zoom) e sem seleção de texto/balão do iOS ao segurar.
 - **Patrimônio líquido = banco + investimentos − dívidas** (pode ser negativo; "a receber" não entra). É a base dos meses de liberdade.
-- **Início** (nota do usuário "tela-de-inicio", na ordem): 1) patrimônio líquido e com os bens ("Ver mais" → `#/patrimonio`: contas e
+- **Início** (nota do usuário "tela-de-inicio", na ordem): no topo, o card do banco (de quando são os dados de cada conexão); 1) patrimônio líquido e com os bens ("Ver mais" → `#/patrimonio`: contas e
   investimentos, total das dívidas, bens; a linha "Com os bens" abre direto a lista de bens, `#/patrimonio?secao=bens`), com a
   **meta de patrimônio** como um jogo **só para quem definiu `config.metaPatrimonio`** (sem = não aparece; barra, marcos
   0 → 10 mil → 25 mil → meta, "Próximo marco: … · faltam …"); 2) meses de liberdade; 3) metas (3 primeiras; "Ver mais" → `#/metas`); 4) mês até agora; 5) a categorizar.
@@ -88,12 +88,13 @@ no `seed/`, nos testes ou neste arquivo. Numa instalação que só usa o app, n�
 - Credenciais em `.env.local` (`PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`, `PLUGGY_ITEM_IDS`). **Nunca** leia em voz alta, copie para o chat ou commite esse arquivo.
 - Item novo (ex.: conta PJ) vai primeiro em `PLUGGY_ITEM_ID_NOVO`: só entra em `npm run sincronizar -- --novo` (sempre simulação;
   mostra final da conta e item de cada conta — se a PF aparecer de novo, não pode entrar duplicada). Conferido → mover para `PLUGGY_ITEM_IDS`.
-- `npm run sincronizar [-- --simular]` (ou botão Atualizar no app). O Meu Pluggy busca cada conexão no banco **1× por dia, no
+- `npm run sincronizar [-- --simular]`. **Não há botão Atualizar** (tirado a pedido do usuário: buscar antes do horário da Pluggy não traz nada). O Meu Pluggy busca cada conexão no banco **1× por dia, no
   horário dele** (e não aceita atualização manual): buscar antes não traz nada. A sincronização grava em `patrimonio.conexoes`
   quando o banco mandou os dados (`lastUpdatedAt`) e quando a Pluggy busca de novo (`nextAutoSyncAt`) de cada conexão; o app busca
   sozinho logo depois desse horário — ao abrir, ao voltar para ele e com ele aberto (`src/lib/sincronizacao.ts`; atrasou, tenta
-  a cada 15 min; sem os horários, a regra antiga de 3h). A barra do Extrato mostra "<conta> · dados de <quando>" (a hora do banco,
-  não a do app; ponto amarelo = a Pluggy atrasou) e o (?) diz os próximos horários.
+  a cada 15 min; sem os horários, a regra antiga de 3h). O card do banco (`BarraBanco`, no topo do **Início**) mostra
+  "<conta> · dados de <quando>" (a hora do banco, não a do app; ponto amarelo = a Pluggy atrasou; girando = buscando agora)
+  e o (?) diz os próximos horários.
 - `server/pluggy.ts` orquestra; `src/lib/importar/pluggy.ts` converte (cartão: Pluggy manda compra positiva → invertemos).
   Hash `pluggy:<id>` (o id se mantém de pendente → lançado; mudanças de valor/data são atualizadas sem mexer na categoria).
 - 1ª sincronização puxa desde o dia 1º de 3 meses atrás; depois, desde a última transação − 10 dias.
@@ -125,7 +126,7 @@ no `seed/`, nos testes ou neste arquivo. Numa instalação que só usa o app, n�
   (`public/entrar.html`) e `/api/*` devolve 401. A senha é conferida por SHA-256 contra `APP_SENHA_HASH`
   (`npm run senha` cria/troca; a senha em si nunca é guardada). O cron se defende com `CRON_SECRET`.
 - **Copiloto não existe na nuvem** (ele roda o Claude Code deste Mac): o app pergunta `/api/ambiente` e esconde tudo dele.
-- **Sincronização**: cron 1×/dia (`vercel.json`) + o botão Atualizar de qualquer lugar; as credenciais da Pluggy ficam
+- **Sincronização**: cron 1×/dia (`vercel.json`) + o app aberto buscando logo depois do horário da Pluggy; as credenciais da Pluggy ficam
   nas variáveis do projeto na Vercel.
 - **Migrar os dados de casa para a nuvem:** `npm run subir-dados [-- --simular]`. Com `MINHA_ECONOMIA_DEPOSITO=blob` no
   `.env.local`, o Mac passa a ler e gravar os mesmos dados da nuvem (sem internet, o app de casa não abre).

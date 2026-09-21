@@ -7,7 +7,6 @@ import { doMes, linhaPorId, naoPlanejada, r2 } from '../lib/calculos';
 import type { Transacao } from '../lib/tipos';
 import { FONTES } from '../lib/contas';
 import { Botao, Card, Chip, SeletorMes, Seletor, TituloPagina } from '../components/ui';
-import { BarraBanco } from '../components/BarraBanco';
 import { AtalhoCategorizar } from '../components/AtalhoCategorizar';
 import { rotuloArvore, useMenuDoLancamento } from '../components/AcoesCategoria';
 import { useMenuContexto } from '../components/Menu';
@@ -65,7 +64,6 @@ export function Extrato({
   return (
     <div>
       <TituloPagina>Extrato</TituloPagina>
-      <BarraBanco className="mb-3" />
       <SeletorMes mes={mes} onMudar={setMes} />
       <AtalhoCategorizar navegar={navegar} className="mb-3" />
 
