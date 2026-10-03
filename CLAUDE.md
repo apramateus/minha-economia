@@ -105,6 +105,8 @@ no `seed/`, nos testes ou neste arquivo. Numa instalação que só usa o app, n�
   objetiva); ajustes assim só por pedido ao Claude/copiloto, gravando `dataBanco`/`valorBanco`.
   Mesmo esquema para o valor (`valorBanco`): ex.: aluguel de R$ 2.500 = R$ 2.000 de aluguel + R$ 500 de caução (depósito, virou transferência à parte).
 - Não duplica o que já veio por CSV/OFX (mesma conta, mesmo valor, até 3 dias) nem o que foi lançado à mão (até 7 dias).
+- **Compra no débito** chega na conta como operação `CARTAO` ("DEBITO DE CARTAO", sem o nome da loja) e a Pluggy a chama de
+  "Credit card payment": é gasto, não pagamento de fatura; a entrada `CARTAO` na conta é o estorno dela (gasto negativo) — `linhaDaPluggy`.
 - Pagar contas/transferir: **não fazemos**. O acesso é só leitura e pagamentos ficam com o usuário (débito automático, Pix Automático).
 
 - A sincronização também atualiza: saldo do cartão = o maior entre o saldo e o limite usado (creditLimit − availableCreditLimit;
@@ -118,7 +120,8 @@ no `seed/`, nos testes ou neste arquivo. Numa instalação que só usa o app, n�
 - **Depósito dos dados** (`server/deposito.ts`): `arquivo` (padrão) ou `blob` (store **privada** da Vercel Blob; só as
   funções leem, com token). Escolha: `MINHA_ECONOMIA_DADOS` definido → sempre arquivo (cópia de trabalho do copiloto);
   rodando na Vercel → blob; senão, `MINHA_ECONOMIA_DEPOSITO`. A `versao` que o app vê continua sendo o hash do conteúdo;
-  no blob, o `If-Match` vira `ifMatch` de etag (conflito = 409, como em casa). Backup do dia: `backups/AAAA-MM-DD/`.
+  no blob, o `If-Match` vira `ifMatch` de etag (conflito = 409, como em casa; a etag de arquivo grande chega comprimida, "fraca"
+  `W/"…"`, e o `lerBlob` tira o `W/`, senão toda gravação dava conflito). Backup do dia: `backups/AAAA-MM-DD/`.
 - **Rotas** (`server/rotas.ts`): a mesma função responde no Vite (`server/api.ts`) e nas funções da Vercel (`api/`).
   Na nuvem existem só `/api/dados`, `/api/banco`, `/api/ambiente`, `/api/entrar`, `/api/sair` e `/api/cron/sincronizar`;
   `/api/copiloto` e `/api/rede` são só de casa.

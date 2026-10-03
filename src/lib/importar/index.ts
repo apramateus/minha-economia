@@ -99,7 +99,7 @@ export function classificar(l: LinhaBruta, conta: string, regras: Regra[], confi
   }
   if (l.valor < 0) return { tipo: 'despesa', linha: linhaValida, valor: abs };
   // entrou dinheiro (mesmo com uma regra de gasto no nome: gasto é o que sai)
-  if (contaEhCartao(conta)) return { tipo: 'despesa', linha: linhaValida, valor: -abs }; // estorno
+  if (contaEhCartao(conta) || l.estorno) return { tipo: 'despesa', linha: linhaValida, valor: -abs }; // estorno
   return { tipo: 'receita', linha: null, fonte: regra?.fonte ?? 'outros', valor: abs };
 }
 

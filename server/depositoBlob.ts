@@ -43,7 +43,9 @@ async function lerBlob(nome: string): Promise<Guardado | null> {
   // useCache: false = lê do armazenamento, não do CDN; sem isso o app poderia ver dados de um minuto atrás
   const r = await get(caminho(nome), { ...comum(), useCache: false });
   if (!r || r.statusCode !== 200) return null;
-  return { texto: await texto(r.stream), etag: r.blob.etag };
+  // arquivo grande chega comprimido e a etag vem "fraca" (W/"…"); o `ifMatch` só aceita a forte — sem tirar o W/,
+  // toda gravação condicional dava conflito (o app recebia 409 até desistir)
+  return { texto: await texto(r.stream), etag: r.blob.etag.replace(/^W\//, '') };
 }
 
 export const depositoBlob: Deposito = {

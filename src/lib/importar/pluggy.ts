@@ -2,6 +2,7 @@
 // Puro (sem o SDK) para poder testar; quem chama a API é server/pluggy.ts.
 import { isoDia } from '../datas.ts';
 import type { LinhaBruta } from './formatos.ts';
+import { CATEGORIAS_TRANSFERENCIA } from './index.ts';
 import type { Transacao } from '../tipos.ts';
 
 /** Só os campos que usamos de `Transaction` do pluggy-sdk. */
@@ -14,6 +15,8 @@ export interface TransacaoPluggy {
   type: 'DEBIT' | 'CREDIT';
   status?: 'PENDING' | 'POSTED';
   category?: string | null;
+  /** como o dinheiro passou pela conta: PIX, TED, CARTAO (compra no débito)… */
+  operationType?: string | null;
   merchant?: { name?: string; businessName?: string } | null;
   creditCardMetadata?: { installmentNumber?: number; totalInstallments?: number } | null;
 }
@@ -32,10 +35,15 @@ export interface ContaPluggy {
  * Sinal: no app, negativo = dinheiro saiu.
  * - Conta (BANK): DEBIT sai, CREDIT entra.
  * - Cartão (CREDIT): a Pluggy manda compras positivas e pagamentos/estornos negativos — invertemos.
+ *
+ * Compra no débito: chega na conta como operação CARTAO ("DEBITO DE CARTAO", sem o nome da loja) e a Pluggy a chama
+ * de "Credit card payment", como se fosse o pagamento da fatura. É gasto; e a entrada CARTAO na conta é o estorno dela.
  */
 export function linhaDaPluggy(t: TransacaoPluggy, tipoConta: ContaPluggy['type']): LinhaBruta {
   const abs = Math.abs(t.amount);
   const valor = tipoConta === 'CREDIT' ? -t.amount : t.type === 'DEBIT' ? -abs : abs;
+  const debito = tipoConta === 'BANK' && t.operationType === 'CARTAO';
+  const categoria = debito && t.category && CATEGORIAS_TRANSFERENCIA.includes(t.category) ? null : t.category;
   const cc = t.creditCardMetadata;
   const parcela = cc?.totalInstallments && cc.totalInstallments > 1 ? ` (${cc.installmentNumber ?? '?'}/${cc.totalInstallments})` : '';
   const extras = [t.descriptionRaw, t.merchant?.name, t.merchant?.businessName].filter(
@@ -47,7 +55,8 @@ export function linhaDaPluggy(t: TransacaoPluggy, tipoConta: ContaPluggy['type']
     descricao: (t.description || t.descriptionRaw || 'Sem descrição') + parcela,
     hash: `pluggy:${t.id}`,
     ...(extras.length ? { detalhe: [...new Set(extras)].join(' ') } : {}),
-    ...(t.category ? { categoriaBanco: t.category } : {}),
+    ...(categoria ? { categoriaBanco: categoria } : {}),
+    ...(debito && valor > 0 ? { estorno: true } : {}),
   };
 }
 

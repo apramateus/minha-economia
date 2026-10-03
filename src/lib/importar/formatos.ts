@@ -11,6 +11,8 @@ export interface LinhaBruta {
   /** texto extra só para casar regras (descrição bruta do banco, estabelecimento…) */
   detalhe?: string;
   categoriaBanco?: string;
+  /** entrada que desfaz uma compra (estorno de compra no débito): é gasto negativo, não renda */
+  estorno?: boolean;
 }
 
 export function normalizar(s: string): string {

@@ -47,6 +47,27 @@ describe('conversão da Pluggy', () => {
   });
 });
 
+describe('compra no débito', () => {
+  const debito = (x: Partial<TransacaoPluggy>) =>
+    t({ description: 'DEBITO DE CARTAO', category: 'Credit card payment', operationType: 'CARTAO', ...x });
+
+  it('é gasto, mesmo com a Pluggy chamando de pagamento de cartão', () => {
+    const [p] = montarPrevia([linhaDaPluggy(debito({ amount: -35.5 }), 'BANK')], 'conta', regras, config, []);
+    expect(p.transacao).toMatchObject({ tipo: 'despesa', valor: 35.5, linha: null });
+  });
+
+  it('o pagamento da fatura (outra operação) continua transferência', () => {
+    const [p] = montarPrevia([linhaDaPluggy(debito({ amount: -2500, operationType: 'BOLETO' }), 'BANK')], 'conta', regras, config, []);
+    expect(p.transacao.tipo).toBe('transferencia');
+  });
+
+  it('o estorno de uma compra no débito é gasto negativo, não renda', () => {
+    const l = linhaDaPluggy(debito({ description: 'IFD*RESTAURANTE', category: 'Food delivery', amount: 42, type: 'CREDIT' }), 'BANK');
+    const [p] = montarPrevia([l], 'conta', regras, config, []);
+    expect(p.transacao).toMatchObject({ tipo: 'despesa', valor: -42, linha: 'ifood' });
+  });
+});
+
 describe('sincronizar de novo', () => {
   it('a mesma transação da Pluggy é reconhecida pelo id', () => {
     const l = linhaDaPluggy(t({ id: 'p1', amount: 30 }), 'CREDIT');
